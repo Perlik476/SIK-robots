@@ -35,6 +35,10 @@ set (CMAKE_CXX_FLAGS_RELEASE "-O2")
 set (CLIENT_EXECUTABLE ${PROJECT_NAME}-client)
 add_executable (${CLIENT_EXECUTABLE}
         src-client/main.cpp
+        src-client/definitions.h
+        src-client/definitions.cc
+        src-client/messages.h
+        src-client/messages.cc
         )
 
 # Add executable server
