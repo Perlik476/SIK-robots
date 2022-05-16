@@ -167,6 +167,9 @@ public:
 class TurnMessage: public ServerMessage {
     Uint16 turn;
     List<Event> events;
+
+public:
+    explicit TurnMessage(Bytes &bytes) : turn(Uint16(bytes)), events(List<Event>(bytes)) {}
 };
 
 //class GuiMessage: public MessageReceived {};

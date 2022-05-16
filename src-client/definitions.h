@@ -10,6 +10,7 @@
 #include <cstring>
 #include <memory>
 #include <netinet/in.h>
+#include <variant>
 
 using bytes_t = char *;
 
@@ -47,6 +48,8 @@ public:
     }
 };
 
+class GameState;
+
 class Serializable {
 public:
     virtual Bytes serialize() = 0;
@@ -54,8 +57,18 @@ public:
     virtual ~Serializable() = default;
 };
 
+class Executable {
+public:
+    ~Executable() = default;
+
+    virtual void execute(GameState &game_state) = 0;
+};
+
 template<class T>
 concept isSerializable = std::is_base_of_v<Serializable, T>;
+
+template<class T>
+concept isExecutable = std::is_base_of_v<Executable, T>;
 
 template<class T>
 concept isUint = std::is_integral_v<T>; // TODO
@@ -169,7 +182,8 @@ public:
     }
 };
 
-template<isSerializable T>
+template<class T>
+requires isSerializable<T> || isExecutable<T> // TODO
 class List: public Serializable {
 public:
     std::vector<std::shared_ptr<T>> list;
@@ -184,14 +198,19 @@ public:
     }
 
     Bytes serialize() override {
-        auto length = static_cast<uint32_t>(list.size());
+        if constexpr (isSerializable<T>) {
+            auto length = static_cast<uint32_t>(list.size());
 
-        Bytes list_content;
-        for (auto &element : list) {
-            list_content += element->serialize();
+            Bytes list_content;
+            for (auto &element: list) {
+                list_content += element->serialize();
+            }
+
+            return Uint32(length).serialize() + list_content;
         }
-
-        return Uint32(length).serialize() + list_content;
+        else {
+            return {};
+        }
     }
 };
 
@@ -284,14 +303,7 @@ public:
     Map<PlayerId, Score> scores;
 };
 
-class Executable {
-public:
-    virtual void execute(GameState &game_state) = 0;
-};
-
-class Event: public Executable {};
-
-class BombPlacedEvent: public Event {
+class BombPlacedEvent: public Executable {
     BombId id;
     Position position;
 
@@ -307,7 +319,7 @@ public:
     }
 };
 
-class BombExplodedEvent: public Event {
+class BombExplodedEvent: public Executable {
     BombId id;
     List<PlayerId> robots_destroyed;
     List<Position> blocks_destroyed;
@@ -324,7 +336,7 @@ public:
     }
 };
 
-class PlayerMovedEvent: public Event {
+class PlayerMovedEvent: public Executable {
     PlayerId id;
     Position position;
 
@@ -339,16 +351,103 @@ public:
     }
 };
 
-class BlockPlaced: public Event {
+class BlockPlacedEvent: public Executable {
     Position position;
 
 public:
-    explicit BlockPlaced(Bytes &bytes) {
+    explicit BlockPlacedEvent(Bytes &bytes) {
         position = Position(bytes);
     }
 
     void execute(GameState &game_state) override {
         // TODO
+    }
+};
+
+class Event: public Executable { // TODO
+    enum Type: char {
+        BombPlaced,
+        BombExploded,
+        PlayerMoved,
+        BlockPlaced
+    } type;
+
+    using event_t = std::variant<BombPlacedEvent, BombExplodedEvent,
+        PlayerMovedEvent, BlockPlacedEvent, bool>; // TODO
+
+//    union {
+//        BombPlacedEvent bomb_placed_event;
+//        BombExplodedEvent bomb_exploded_event;
+//        PlayerMovedEvent player_moved_event;
+//        BlockPlacedEvent block_placed_event;
+//    } event;
+
+    event_t event = false;
+
+public:
+    ~Event() = default;
+//        switch(type) {
+//            case BombPlaced:
+//                this->BombPlacedEvent::~bomb_placed_event();
+//                break;
+//            case BombExploded:
+//                bomb_exploded_event = BombExplodedEvent(bytes);
+//                break;
+//            case PlayerMoved:
+//                player_moved_event = PlayerMovedEvent(bytes);
+//                break;
+//            case BlockPlaced:
+//                block_placed_event = BlockPlacedEvent(bytes);
+//                break;
+//            default:
+//                // TODO
+//                break;
+//        }
+//    }
+
+    explicit Event(Bytes &bytes) {
+        type = (Type) bytes.get_next_byte();
+        switch(type) {
+            case BombPlaced:
+                event = BombPlacedEvent(bytes);
+                break;
+            case BombExploded:
+                event = BombExplodedEvent(bytes);
+                break;
+            case PlayerMoved:
+                event = PlayerMovedEvent(bytes);
+                break;
+            case BlockPlaced:
+                event = BlockPlacedEvent(bytes);
+                break;
+            default:
+                // TODO
+                break;
+        }
+    }
+
+//    Bytes serialize() override {
+//        return {}; // TODO
+//    }
+
+    void execute(GameState &game_state) override {
+        switch(type) {
+            case BombPlaced:
+                std::get<BombPlacedEvent>(event).execute(game_state);
+                break;
+            case BombExploded:
+                std::get<BombExplodedEvent>(event).execute(game_state);
+                break;
+            case PlayerMoved:
+                std::get<PlayerMovedEvent>(event).execute(game_state);
+                break;
+            case BlockPlaced:
+                std::get<BlockPlacedEvent>(event).execute(game_state);
+                break;
+            default:
+                // TODO
+                break;
+        }
     }
 };
 
