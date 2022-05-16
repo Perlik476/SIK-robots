@@ -101,5 +101,33 @@ public:
 };
 
 
+class MessageReceived {
+    Bytes bytes;
+    virtual void deserialize() = 0;
+public:
+    MessageReceived() = default;
+
+    explicit MessageReceived(Bytes &bytes) : bytes(bytes) {}
+
+    virtual void execute(GameState &game_state) = 0;
+};
+
+class ServerMessage: public MessageReceived {};
+
+//class HelloMessage: public ServerMessage {
+//    void deserialize() override {
+//
+//    }
+//public:
+//    void execute(GameState &game_state) override {
+//
+//    }
+//};
+
+class GuiMessage: public MessageReceived {};
+
+std::shared_ptr<ServerMessage> get_server_message(Bytes bytes);
+
+std::shared_ptr<GuiMessage> get_gui_message(Bytes bytes);
 
 #endif // ROBOTS_MESSAGES_H

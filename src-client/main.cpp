@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
     auto string1 = std::make_shared<String>();
     string1->string = "lol";
     auto string2 = std::make_shared<String>();
-    string2->string = "XDD";
+    string2->string = "XDDDD";
     list.list.push_back(string1);
     list.list.push_back(string2);
 
@@ -70,18 +70,29 @@ int main(int argc, char *argv[]) {
     len = ntohl(len);
     std::cout << len << " " << bytes.size() << "\n";
 
-    std::cout << "Move:\n";
-    auto bytes2 = MoveMessage(Direction::Down).serialize();
-    for (auto &byte : bytes2) {
-        std::cout << (int) byte << "\n";
-    }
+    std::cout << Uint32(bytes).value << "\n";
 
-    std::cout << "Join:\n";
+    bytes.reset_pointer();
+    List<String> deserialized = List<String>(bytes);
 
-    auto bytes3 = JoinMessage("XDDD").serialize();
-    for (auto &byte : bytes3) {
-        std::cout << (int) byte << ": " << byte << "\n";
-    }
+    std::cout << deserialized.list.size() << " " << (*deserialized.list[0]).string << " " << (*deserialized.list[1]).string << "\n";
+
+//    std::cout << "Move:\n";
+//    auto bytes2 = MoveMessage(Direction::Down).serialize();
+//    for (auto &byte : bytes2) {
+//        std::cout << (int) byte << "\n";
+//    }
+//
+//    std::cout << "Join:\n";
+//
+//    auto bytes3 = JoinMessage("XDDD").serialize();
+//    for (auto &byte : bytes3) {
+//        std::cout << (int) byte << ": " << byte << "\n";
+//    }
+//
+//    for (size_t i = 0; i < bytes3.size(); i++) {
+//        std::cout << (int) Uint8(bytes3).value << " ";
+//    }
 
     return 0;
 }
