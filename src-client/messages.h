@@ -3,12 +3,12 @@
 
 #include "definitions.h"
 
-class Message: public Serializable {
+class MessageToSend: public Serializable {
 public:
     virtual void send() = 0;
 };
 
-class ClientMessage: public Message {
+class ClientMessage: public MessageToSend {
 private:
     virtual char get_identifier() = 0;
 public:
@@ -70,7 +70,7 @@ public:
 };
 
 
-class DrawMessage: public Message {
+class DrawMessage: public MessageToSend {
 private:
     virtual char get_identifier() = 0;
 public:
@@ -81,24 +81,23 @@ public:
 
 class LobbyMessage : public DrawMessage {
 private:
-    char get_identifier() override { return 0; }
-    String server_name;
-    Uint<uint8_t> players_count;
-    Uint<uint16_t> size_x;
-    Uint<uint16_t> size_t;
-    Uint<uint16_t> game_length;
-    Uint<uint16_t> explosion_radius;
-    Uint<uint16_t> bomb_timer;
-    Map<player_id_t, Player> players;
+//    char get_identifier() override { return 0; }
+//    String _server_name;
+//    Uint<uint8_t> _players_count;
+//    Uint<uint16_t> _size_x;
+//    Uint<uint16_t> _size_t;
+//    Uint<uint16_t> _game_length;
+//    Uint<uint16_t> _explosion_radius;
+//    Uint<uint16_t> _bomb_timer;
+//    Map<PlayerId, Player> _players;
+    Bytes message;
 
 public:
     LobbyMessage() = default;
 
-//    explicit LobbyMessage(const Direction direction): direction(direction) {}
+    LobbyMessage(Bytes message) : message(message) {}
 
-//    Bytes serialize() override {
-//        return Bytes(get_identifier()) + Bytes(direction);
-//    }
+    Bytes serialize() override { return message; }
 };
 
 

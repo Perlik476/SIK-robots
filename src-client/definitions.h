@@ -19,7 +19,7 @@ public:
 
     Bytes(bytes_t bytes, size_t length);
 
-    Bytes(const std::string &string);
+    Bytes(std::string &string);
 
     Bytes(char byte);
 
@@ -46,6 +46,8 @@ class Uint: public Serializable {
 public:
     T value;
 
+    Uint() = default;
+
     explicit Uint(T value): value(value) {}
 
     Bytes serialize() override {
@@ -67,10 +69,27 @@ public:
     }
 };
 
-using player_id_t = Uint<uint8_t>;
-using bomb_id_t = Uint<uint32_t>;
-using score_t = Uint<uint32_t>;
-using coordinate_t = Uint<uint16_t>;
+using Uint8 = Uint<uint8_t>;
+using Uint16 = Uint<uint16_t>;
+using Uint32 = Uint<uint32_t>;
+
+using PlayerId = Uint8;
+using BombId = Uint32;
+using Score = Uint32;
+using Coordinate = Uint16;
+
+class Position: public Serializable {
+public:
+    Uint16 x, y;
+
+    Position() = default;
+
+    Position(Uint16 &x, Uint16 &y) : x(x), y(y) {}
+
+    Bytes serialize() override {
+        return x.serialize() + y.serialize();
+    }
+};
 
 enum Direction: char {
     Up,
@@ -86,12 +105,19 @@ public:
 
     String() = default;
 
-    String(const std::string &string): string(string) {}
+    String(const String &other) : string(other.string) {}
+
+    explicit String(const std::string &string) : string(string) {}
+
+    String &operator= (const String &other) {
+        this->string = other.string;
+        return *this;
+    }
 
     Bytes serialize() override {
         auto length = static_cast<uint8_t>(string.length()); // TODO check length < 256
 
-        return Uint<uint8_t>(length).serialize() + string;
+        return Uint8(length).serialize() + string;
     }
 };
 
@@ -108,7 +134,7 @@ public:
             list_content += element->serialize();
         }
 
-        return Uint<uint32_t>(length).serialize() + list_content;
+        return Uint32(length).serialize() + list_content;
     }
 };
 
@@ -116,6 +142,7 @@ template<isSerializable K, isSerializable T>
 class Map: public Serializable {
 public:
     std::map<std::shared_ptr<K>, std::shared_ptr<T>> map;
+
     Bytes serialize() override {
         auto length = static_cast<uint32_t>(map.size());
 
@@ -124,7 +151,7 @@ public:
             map_content += element->serialize();
         }
 
-        return Uint<uint32_t>(length).serialize() + map_content;
+        return Uint32(length).serialize() + map_content;
     };
 };
 
@@ -138,6 +165,43 @@ public:
     String get_name() { return name; }
 
     String get_address() { return address; }
+
+    Bytes serialize() override {
+        return name.serialize() + address.serialize();
+    }
 };
+
+class Bomb: public Serializable {
+public:
+    Position position;
+    Uint16 timer;
+
+    Bomb(Position &position, Uint16 &timer): position(position), timer(timer) {}
+
+    Bytes serialize() override {
+        return position.serialize() + timer.serialize();
+    }
+};
+
+class GameState {
+private:
+    String _server_name;
+    Uint8 _players_count;
+    Uint16 _size_x;
+    Uint16 _size_t;
+    Uint16 _game_length;
+    Uint16 _explosion_radius;
+    Uint16 _bomb_timer;
+    Map<PlayerId, Player> _players;
+
+    Uint16 _turn;
+    Map<PlayerId, Position> _player_positions;
+    List<Position> _blocks;
+    List<Bomb> _bombs;
+    List<Position> _explosions;
+    Map<PlayerId, Score> _scores;
+};
+
+void deserialize(Bytes bytes, GameState &game_state);
 
 #endif //ROBOTS_DEFINITIONS_H

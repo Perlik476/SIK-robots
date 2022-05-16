@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
 
     std::cout << "Join:\n";
 
-    auto bytes3 = JoinMessage("XD").serialize();
+    auto bytes3 = JoinMessage("XDDD").serialize();
     for (auto &byte : bytes3) {
         std::cout << (int) byte << ": " << byte << "\n";
     }
