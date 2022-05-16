@@ -11,6 +11,7 @@
 #include <memory>
 #include <netinet/in.h>
 #include <variant>
+#include <iostream>
 
 using bytes_t = char *;
 
@@ -20,6 +21,8 @@ public:
     Bytes() = default;
 
     Bytes(bytes_t bytes, size_t length);
+
+    Bytes(std::vector<char> &vec);
 
     Bytes(std::string &string);
 
@@ -59,7 +62,7 @@ public:
 
 class Executable {
 public:
-    ~Executable() = default;
+    virtual ~Executable() = default;
 
     virtual void execute(GameState &game_state) = 0;
 };
@@ -316,6 +319,7 @@ public:
     void execute(GameState &game_state) override {
 //        game_state.bombs.list
 //      TODO
+        std::cout << "BombPlaced\nid: " << id.value << ", x: " << position.x.value << ", y: " << position.y.value << "\n";
     }
 };
 
@@ -348,6 +352,7 @@ public:
 
     void execute(GameState &game_state) override {
         // TODO
+        std::cout << "PlayerMoved\nid: " << (int) id.value << ", x: " << position.x.value << ", y: " << position.y.value << "\n";
     }
 };
 
@@ -375,36 +380,9 @@ class Event: public Executable { // TODO
     using event_t = std::variant<BombPlacedEvent, BombExplodedEvent,
         PlayerMovedEvent, BlockPlacedEvent, bool>; // TODO
 
-//    union {
-//        BombPlacedEvent bomb_placed_event;
-//        BombExplodedEvent bomb_exploded_event;
-//        PlayerMovedEvent player_moved_event;
-//        BlockPlacedEvent block_placed_event;
-//    } event;
-
     event_t event = false;
 
 public:
-    ~Event() = default;
-//        switch(type) {
-//            case BombPlaced:
-//                this->BombPlacedEvent::~bomb_placed_event();
-//                break;
-//            case BombExploded:
-//                bomb_exploded_event = BombExplodedEvent(bytes);
-//                break;
-//            case PlayerMoved:
-//                player_moved_event = PlayerMovedEvent(bytes);
-//                break;
-//            case BlockPlaced:
-//                block_placed_event = BlockPlacedEvent(bytes);
-//                break;
-//            default:
-//                // TODO
-//                break;
-//        }
-//    }
-
     explicit Event(Bytes &bytes) {
         type = (Type) bytes.get_next_byte();
         switch(type) {
@@ -425,10 +403,6 @@ public:
                 break;
         }
     }
-
-//    Bytes serialize() override {
-//        return {}; // TODO
-//    }
 
     void execute(GameState &game_state) override {
         switch(type) {

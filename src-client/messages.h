@@ -1,6 +1,7 @@
 #ifndef ROBOTS_MESSAGES_H
 #define ROBOTS_MESSAGES_H
 
+#include <iostream>
 #include "definitions.h"
 
 class MessageToSend: public Serializable {
@@ -108,6 +109,14 @@ public:
 //    virtual void execute(GameState &game_state) = 0;
 //};
 
+enum ServerMessageType: char {
+    Hello,
+    AcceptedPlayer,
+    GameStarted,
+    Turn,
+    GameEnded
+};
+
 class ServerMessage: public Executable {};
 
 class HelloMessage: public ServerMessage {
@@ -170,11 +179,31 @@ class TurnMessage: public ServerMessage {
 
 public:
     explicit TurnMessage(Bytes &bytes) : turn(Uint16(bytes)), events(List<Event>(bytes)) {}
+
+    void execute(GameState &game_state) override {
+        // TODO
+        std::cout << "TurnMessage:\nturn: " << turn.value << "\n";
+        std::cout << "list length: " << events.list.size() << "\n";
+        for (auto &event : events.list) {
+            event->execute(game_state);
+        }
+    }
+};
+
+class GameEndedMessage: public ServerMessage {
+    PlayerScoresMap scores;
+
+public:
+    explicit GameEndedMessage(Bytes &bytes) : scores(PlayerScoresMap(bytes)) {}
+
+    void execute(GameState &game_state) override {
+        // TODO
+    }
 };
 
 //class GuiMessage: public MessageReceived {};
 
-std::shared_ptr<ServerMessage> get_server_message(Bytes bytes);
+std::shared_ptr<ServerMessage> get_server_message(Bytes &bytes);
 
 //std::shared_ptr<GuiMessage> get_gui_message(Bytes bytes);
 

@@ -6,6 +6,12 @@ Bytes::Bytes(bytes_t bytes, size_t length) {
     }
 }
 
+Bytes::Bytes(std::vector<char> &vec) {
+    for (auto byte : vec) {
+        push_back(byte);
+    }
+}
+
 Bytes::Bytes(std::string &string) {
     for (auto byte : string) {
         push_back(byte);
@@ -26,4 +32,5 @@ Bytes &Bytes::operator+= (const Bytes &other) {
 Bytes Bytes::operator+ (const Bytes &other) {
     return *this += other;
 }
+
 

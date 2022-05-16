@@ -77,6 +77,14 @@ int main(int argc, char *argv[]) {
 
     std::cout << deserialized.list.size() << " " << (*deserialized.list[0]).string << " " << (*deserialized.list[1]).string << "\n";
 
+    GameState game_state;
+
+    std::vector<char> v = {3, 0, 44, 0, 0, 0, 3, 2, 3, 0, 2, 0, 4, 2, 4, 0, 3, 0, 5, 0, 0, 0, 0, 5, 0, 5, 0, 7};
+    Bytes bytes2 = Bytes(v);
+
+    auto message = get_server_message(bytes2);
+    message->execute(game_state);
+
 //    std::cout << "Move:\n";
 //    auto bytes2 = MoveMessage(Direction::Down).serialize();
 //    for (auto &byte : bytes2) {
