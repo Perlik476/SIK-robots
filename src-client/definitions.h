@@ -213,7 +213,7 @@ public:
         auto length = static_cast<uint32_t>(map.size());
 
         Bytes map_content;
-        for (auto &element : map) {
+        for (auto &[key, element] : map) {
             map_content += element->serialize();
         }
 
@@ -227,6 +227,11 @@ private:
     String address;
 public:
     Player(const String &name, const String &address): name(name), address(address) {}
+
+    explicit Player(Bytes &bytes) {
+        name = String(bytes);
+        address = String(bytes);
+    }
 
     String get_name() { return name; }
 
@@ -244,27 +249,107 @@ public:
 
     Bomb(Position &position, Uint16 &timer): position(position), timer(timer) {}
 
+    explicit Bomb(Bytes &bytes) {
+        position = Position(bytes);
+        timer = Uint16(bytes);
+    }
+
     Bytes serialize() override {
         return position.serialize() + timer.serialize();
     }
 };
+
+// TODO pozamieniać
+using PlayersMap = Map<PlayerId, Player>;
+using PlayersPositionsMap = Map<PlayerId, Position>;
+using PlayerScoresMap = Map<PlayerId, Score>;
+using BlocksList = List<Position>;
+using BombsList = List<Bomb>;
 
 class GameState {
 public:
     String server_name;
     Uint8 players_count;
     Uint16 size_x;
-    Uint16 size_t;
+    Uint16 size_y;
     Uint16 game_length;
     Uint16 explosion_radius;
     Uint16 bomb_timer;
-    Map<PlayerId, Player> players;
+    PlayersMap players;
     Uint16 turn;
     Map<PlayerId, Position> player_positions;
     List<Position> blocks;
     List<Bomb> bombs;
     List<Position> explosions;
     Map<PlayerId, Score> scores;
+};
+
+class Executable {
+public:
+    virtual void execute(GameState &game_state) = 0;
+};
+
+class Event: public Executable {};
+
+class BombPlacedEvent: public Event {
+    BombId id;
+    Position position;
+
+public:
+    explicit BombPlacedEvent(Bytes &bytes) {
+        id = BombId(bytes);
+        position = Position(bytes);
+    }
+
+    void execute(GameState &game_state) override {
+//        game_state.bombs.list
+//      TODO
+    }
+};
+
+class BombExplodedEvent: public Event {
+    BombId id;
+    List<PlayerId> robots_destroyed;
+    List<Position> blocks_destroyed;
+
+public:
+    explicit BombExplodedEvent(Bytes &bytes) {
+        id = BombId(bytes);
+        robots_destroyed = List<PlayerId>(bytes);
+        blocks_destroyed = List<Position>(bytes);
+    }
+
+    void execute(GameState &game_state) override {
+        // TODO
+    }
+};
+
+class PlayerMovedEvent: public Event {
+    PlayerId id;
+    Position position;
+
+public:
+    explicit PlayerMovedEvent(Bytes &bytes) {
+        id = PlayerId(bytes);
+        position = Position(bytes);
+    }
+
+    void execute(GameState &game_state) override {
+        // TODO
+    }
+};
+
+class BlockPlaced: public Event {
+    Position position;
+
+public:
+    explicit BlockPlaced(Bytes &bytes) {
+        position = Position(bytes);
+    }
+
+    void execute(GameState &game_state) override {
+        // TODO
+    }
 };
 
 #endif //ROBOTS_DEFINITIONS_H
