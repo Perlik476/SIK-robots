@@ -91,7 +91,7 @@ public:
 
     Uint() = default;
 
-    explicit Uint(T value): value(value) {}
+    constexpr Uint(T value): value(value) {}
 
     explicit Uint(Bytes &bytes) {
         if constexpr (std::is_same_v<T, uint8_t>) {
@@ -241,6 +241,7 @@ public:
 
         Bytes map_content;
         for (auto &[key, element] : map) {
+            map_content += key->serialize();
             map_content += element->serialize();
         }
 

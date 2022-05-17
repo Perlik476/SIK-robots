@@ -2,18 +2,14 @@
 #define ROBOTS_MESSAGES_H
 
 #include <iostream>
+#include <boost/asio/ip/udp.hpp>
 #include "definitions.h"
 
-class MessageToSend: public Serializable {
-public:
-    virtual void send() = 0;
-};
-
-class ClientMessage: public MessageToSend {
+class ClientMessage: public Serializable {
 private:
     virtual char get_identifier() = 0;
 public:
-    void send() override {
+    void send() {
         Bytes message = serialize();
     }
 
@@ -71,34 +67,43 @@ public:
 };
 
 
-class DrawMessage: public MessageToSend {
+class DrawMessage: public Serializable {
 private:
     virtual char get_identifier() = 0;
 public:
-    void send() override {
+    void send(boost::asio::ip::udp::socket &socket,
+              boost::asio::ip::udp::endpoint &endpoint) {
         Bytes message = serialize();
+        socket.send_to(boost::asio::buffer((std::vector<char>) message), endpoint);
     }
 };
 
 class LobbyMessage : public DrawMessage {
 private:
-//    char get_identifier() override { return 0; }
-//    String _server_name;
-//    Uint<uint8_t> _players_count;
-//    Uint<uint16_t> _size_x;
-//    Uint<uint16_t> _size_t;
-//    Uint<uint16_t> _game_length;
-//    Uint<uint16_t> _explosion_radius;
-//    Uint<uint16_t> _bomb_timer;
-//    Map<PlayerId, Player> _players;
-    Bytes message;
+    char get_identifier() override { return 0; }
+    GameState game_state;
 
 public:
     LobbyMessage() = default;
 
-    LobbyMessage(Bytes message) : message(message) {}
+    explicit LobbyMessage(GameState &game_state) : game_state(game_state) {}
 
-    Bytes serialize() override { return message; }
+    Bytes serialize() override {
+        Bytes bytes = game_state.players.serialize();
+        for (size_t i = 0; i < bytes.size(); i++) {
+            std::cout << (int) bytes[i] << ": " << bytes[i] << "\n";
+        }
+        std::cout << "\n";
+        return Uint8(static_cast<uint8_t>(get_identifier())).serialize()
+            + game_state.server_name.serialize()
+            + game_state.players_count.serialize()
+            + game_state.size_x.serialize()
+            + game_state.size_y.serialize()
+            + game_state.game_length.serialize()
+            + game_state.explosion_radius.serialize()
+            + game_state.bomb_timer.serialize()
+            + game_state.players.serialize();
+    }
 };
 
 
