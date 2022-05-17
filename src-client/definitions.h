@@ -17,6 +17,10 @@ using bytes_t = char *;
 
 class Bytes: public std::vector<char> {
     size_t index = 0;
+
+    void processed(size_t number_of_bytes) {
+        index += number_of_bytes;
+    }
 public:
     Bytes() = default;
 
@@ -38,16 +42,20 @@ public:
         return value;
     }
 
-    char *get_pointer() {
-        return data() + index;
+    std::vector<char> get_next_bytes(size_t n) {
+        std::vector<char> bytes;
+        for (size_t i = 0; i < n; i++) {
+            bytes.push_back(get_next_byte());
+        }
+        return bytes;
     }
 
-    void reset_pointer() {
+//    char *get_pointer() {
+//        return data() + index;
+//    }
+//
+    void reset_pointer() { // TODO
         index = 0;
-    }
-
-    void processed(size_t number_of_bytes) {
-        index += number_of_bytes;
     }
 };
 
@@ -87,18 +95,15 @@ public:
 
     explicit Uint(Bytes &bytes) {
         if constexpr (std::is_same_v<T, uint8_t>) {
-            memcpy(&value, bytes.get_pointer(), 1);
-            bytes.processed(1);
+            memcpy(&value, &(bytes.get_next_bytes(1)[0]), 1);
         }
         else if constexpr (std::is_same_v<T, uint16_t>) {
-            memcpy(&value, bytes.get_pointer(), 2);
+            memcpy(&value, &(bytes.get_next_bytes(2)[0]), 2);
             value = ntohs(value);
-            bytes.processed(2);
         }
         else if constexpr (std::is_same_v<T, uint32_t>) {
-            memcpy(&value, bytes.get_pointer(), 4);
+            memcpy(&value, &(bytes.get_next_bytes(4)[0]), 4);
             value = ntohl(value);
-            bytes.processed(4);
         }
     }
 
