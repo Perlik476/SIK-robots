@@ -141,6 +141,8 @@ public:
 
     Position() = default;
 
+    Position(uint16_t x, uint16_t y) : x(x), y(y) {}
+
     Position(Uint16 &x, Uint16 &y) : x(x), y(y) {}
 
     explicit Position(Bytes &bytes) {
@@ -310,6 +312,8 @@ public:
     List<Bomb> bombs;
     List<Position> explosions;
     Map<PlayerId, Score> scores;
+
+    PlayerId my_id;
 };
 
 class BombPlacedEvent: public Executable {

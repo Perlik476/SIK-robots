@@ -89,11 +89,6 @@ public:
     explicit LobbyMessage(GameState &game_state) : game_state(game_state) {}
 
     Bytes serialize() override {
-        Bytes bytes = game_state.players.serialize();
-        for (size_t i = 0; i < bytes.size(); i++) {
-            std::cout << (int) bytes[i] << ": " << bytes[i] << "\n";
-        }
-        std::cout << "\n";
         return Uint8(static_cast<uint8_t>(get_identifier())).serialize()
             + game_state.server_name.serialize()
             + game_state.players_count.serialize()
@@ -103,6 +98,32 @@ public:
             + game_state.explosion_radius.serialize()
             + game_state.bomb_timer.serialize()
             + game_state.players.serialize();
+    }
+};
+
+class GameMessage : public DrawMessage {
+private:
+    char get_identifier() override { return 1; }
+    GameState game_state;
+
+public:
+    GameMessage() = default;
+
+    explicit GameMessage(GameState &game_state) : game_state(game_state) {}
+
+    Bytes serialize() override {
+        return Uint8(static_cast<uint8_t>(get_identifier())).serialize()
+               + game_state.server_name.serialize()
+               + game_state.size_x.serialize()
+               + game_state.size_y.serialize()
+               + game_state.game_length.serialize()
+               + game_state.turn.serialize()
+               + game_state.players.serialize()
+               + game_state.player_positions.serialize()
+               + game_state.blocks.serialize()
+               + game_state.bombs.serialize()
+               + game_state.explosions.serialize()
+               + game_state.scores.serialize();
     }
 };
 
@@ -203,6 +224,78 @@ public:
 
     void execute(GameState &game_state) override {
         // TODO
+    }
+};
+
+
+enum GuiMessageType: char {
+    PlaceBomb,
+    PlaceBlock,
+    Move
+};
+
+class GuiMessage: public Executable {};
+
+class PlaceBombGuiMessage: public GuiMessage {
+public:
+    PlaceBombGuiMessage() = default;
+
+    void execute(GameState &game_state) override {
+        auto &map = game_state.player_positions.map;
+        for (auto &[key, el] : map) {
+            if (key->value == game_state.my_id.value) {
+                game_state.bombs.list.push_back(std::make_shared<Bomb>(
+                        *el, game_state.bomb_timer));
+                return;
+            }
+        }
+    }
+};
+
+class PlaceBlockGuiMessage: public GuiMessage {
+public:
+    PlaceBlockGuiMessage() = default;
+
+    void execute(GameState &game_state) override {
+        auto &map = game_state.player_positions.map;
+        for (auto &[key, el] : map) {
+            if (key->value == game_state.my_id.value) {
+                game_state.blocks.list.push_back(el);
+                return;
+            }
+        }
+    }
+};
+
+class MoveGuiMessage: public GuiMessage {
+    Direction direction;
+public:
+    explicit MoveGuiMessage(Bytes &bytes) : direction((Direction) bytes.get_next_byte()) {} // TODO
+
+    void execute(GameState &game_state) override {
+        auto &map = game_state.player_positions.map;
+        for (auto &[key, el] : map) {
+            if (key->value == game_state.my_id.value) {
+                switch(direction) {
+                    case Direction::Down:
+                        el->y.value++;
+                        break;
+                    case Direction::Left:
+                        el->x.value--;
+                        break;
+                    case Direction::Up:
+                        el->y.value--;
+                        break;
+                    case Direction::Right:
+                        el->x.value++;
+                        break;
+                    default:
+                        // TODO
+                        break;
+                }
+                return;
+            }
+        }
     }
 };
 

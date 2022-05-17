@@ -95,7 +95,6 @@ int main(int argc, char *argv[]) {
         << "player_name: " << arguments->player_name << "\n";
 
 
-
     boost::asio::io_context io_context;
 
     udp::resolver resolver(io_context);
@@ -103,29 +102,48 @@ int main(int argc, char *argv[]) {
     udp::socket socket(io_context);
     socket.open(udp::v4());
 
-    boost::array<char, 1> send_buf = {{0}};
-//    socket.send_to(boost::asio::buffer(send_buf), receiver_endpoint);
-
     GameState game_state;
     game_state.server_name = String("XD");
-    game_state.players_count = Uint8(1);
+    game_state.players_count = Uint8(2);
     game_state.size_x = Uint16(6);
     game_state.size_y = Uint16(6);
     game_state.game_length = Uint16(10);
     game_state.explosion_radius = Uint16(3);
     game_state.bomb_timer = Uint16(3);
     game_state.players = PlayersMap();
+    game_state.turn = 3;
     std::shared_ptr<Uint8> id = std::make_shared<Uint8>(0);
     game_state.players.map[id] =
             std::make_shared<Player>(String(arguments->player_name), String("127.0.0.1:2138"));
 
+    game_state.player_positions.map[id] = std::make_shared<Position>(1, 1);
+
+    game_state.blocks.list.push_back(std::make_shared<Position>(2, 3));
+    game_state.blocks.list.push_back(std::make_shared<Position>(3, 4));
+
+//    game_state.bombs.list.push_back()
+
     auto lobby_message = LobbyMessage(game_state);
-    Bytes bytes = lobby_message.serialize();
-    for (size_t i = 0; i < bytes.size(); i++) {
-        std::cout << (int) bytes[i] << " ";
-    }
-    std::cout << "\n";
+//    Bytes bytes = lobby_message.serialize();
+//    for (size_t i = 0; i < bytes.size(); i++) {
+//        std::cout << (int) bytes[i] << " ";
+//    }
+//    std::cout << "\n";
     lobby_message.send(socket, receiver_endpoint);
+
+    sleep(2);
+
+    auto game_message = GameMessage(game_state);
+//    Bytes bytes = game_message.serialize();
+//    for (size_t i = 0; i < bytes.size(); i++) {
+//        std::cout << (int) bytes[i] << " ";
+//    }
+//    std::cout << "\n";
+
+    game_message.send(socket, receiver_endpoint);
+
+
+
 
 //    tcp::resolver resolver(io_context);
 //    std::cout << arguments->gui_address_pure << ":" << arguments->gui_port << ":" << arguments->gui_port <<     "\n";
