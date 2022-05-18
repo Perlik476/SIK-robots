@@ -120,6 +120,7 @@ int main(int argc, char *argv[]) {
 
     game_state.blocks.list.push_back(std::make_shared<Position>(2, 3));
     game_state.blocks.list.push_back(std::make_shared<Position>(3, 4));
+    game_state.scores.map[id] = std::make_shared<Score>(0);
 
     game_state.my_id = 0;
 
