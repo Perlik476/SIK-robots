@@ -3,14 +3,16 @@
 
 #include <iostream>
 #include <boost/asio/ip/udp.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include "definitions.h"
 
 class ClientMessage: public Serializable {
 private:
     virtual char get_identifier() const = 0;
 public:
-    void send() {
+    void send(boost::asio::ip::tcp::socket &socket) {
         Bytes message = serialize();
+        socket.send(boost::asio::buffer((std::vector<char>) message));
     }
 
     Bytes serialize() const override {
@@ -242,13 +244,6 @@ public:
 
     void execute(GameState &game_state) override {
         game_state.place_bomb(*game_state.player_positions.map[game_state.my_id]);
-//        auto &map = game_state.player_positions.map;
-//        for (auto &[key, el] : map) {
-//            if (key.value == game_state.my_id.value) {
-//                game_state.place_bomb(*el);
-//                return;
-//            }
-//        }
     }
 };
 
@@ -258,13 +253,6 @@ public:
 
     void execute(GameState &game_state) override {
         game_state.place_block(*game_state.player_positions.map[game_state.my_id]);
-//        auto &map = game_state.player_positions.map;
-//        for (auto &[key, el] : map) {
-//            if (key.value == game_state.my_id.value) {
-//                game_state.place_block(*el);
-//                return;
-//            }
-//        }
     }
 };
 
@@ -275,13 +263,6 @@ public:
 
     void execute(GameState &game_state) override {
         game_state.try_move(direction, game_state.player_positions.map[game_state.my_id]);
-//        auto &map = game_state.player_positions.map;
-//        for (auto &[key, el] : map) {
-//            if (key.value == game_state.my_id.value) {
-//                game_state.try_move(direction, el);
-//                return;
-//            }
-//        }
     }
 };
 

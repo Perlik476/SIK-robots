@@ -12,6 +12,7 @@
 #include <netinet/in.h>
 #include <variant>
 #include <iostream>
+#include <mutex>
 
 using bytes_t = char *;
 
@@ -339,6 +340,8 @@ public:
     Map<PlayerId, Score> scores;
 
     PlayerId my_id;
+
+    std::shared_ptr<std::mutex> mutex;
 
     bool is_block_on_position(const Position &position) {
         for (const auto &block_position : blocks.list) {
