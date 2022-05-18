@@ -32,5 +32,13 @@ Bytes &Bytes::operator+= (const Bytes &other) {
 Bytes Bytes::operator+ (const Bytes &other) {
     return *this += other;
 }
-
-
+//
+//Position &Position::operator+= (const Position &other) {
+//    this->x.value += other.x.value;
+//    this->y.value += other.y.value;
+//    return *this;
+//}
+//
+//Position Position::operator+ (const Position &other) {
+//    return *this += other;
+//}

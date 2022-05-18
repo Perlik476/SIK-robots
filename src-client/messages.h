@@ -244,8 +244,7 @@ public:
         auto &map = game_state.player_positions.map;
         for (auto &[key, el] : map) {
             if (key->value == game_state.my_id.value) {
-                game_state.bombs.list.push_back(std::make_shared<Bomb>(
-                        *el, game_state.bomb_timer));
+                game_state.place_bomb(*el);
                 return;
             }
         }
@@ -260,7 +259,7 @@ public:
         auto &map = game_state.player_positions.map;
         for (auto &[key, el] : map) {
             if (key->value == game_state.my_id.value) {
-                game_state.blocks.list.push_back(std::make_shared<Position>(el->x, el->y));
+                game_state.place_block(*el);
                 return;
             }
         }
@@ -276,23 +275,7 @@ public:
         auto &map = game_state.player_positions.map;
         for (auto &[key, el] : map) {
             if (key->value == game_state.my_id.value) {
-                switch(direction) {
-                    case Direction::Down:
-                        el->y.value--;
-                        break;
-                    case Direction::Left:
-                        el->x.value--;
-                        break;
-                    case Direction::Up:
-                        el->y.value++;
-                        break;
-                    case Direction::Right:
-                        el->x.value++;
-                        break;
-                    default:
-                        // TODO
-                        break;
-                }
+                game_state.try_move(direction, el);
                 return;
             }
         }
