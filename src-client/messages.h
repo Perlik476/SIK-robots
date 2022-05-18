@@ -260,7 +260,7 @@ public:
         auto &map = game_state.player_positions.map;
         for (auto &[key, el] : map) {
             if (key->value == game_state.my_id.value) {
-                game_state.blocks.list.push_back(el);
+                game_state.blocks.list.push_back(std::make_shared<Position>(el->x, el->y));
                 return;
             }
         }
@@ -278,13 +278,13 @@ public:
             if (key->value == game_state.my_id.value) {
                 switch(direction) {
                     case Direction::Down:
-                        el->y.value++;
+                        el->y.value--;
                         break;
                     case Direction::Left:
                         el->x.value--;
                         break;
                     case Direction::Up:
-                        el->y.value--;
+                        el->y.value++;
                         break;
                     case Direction::Right:
                         el->x.value++;
@@ -303,6 +303,8 @@ public:
 
 std::shared_ptr<ServerMessage> get_server_message(Bytes &bytes);
 
-//std::shared_ptr<GuiMessage> get_gui_message(Bytes bytes);
+std::shared_ptr<GuiMessage> get_gui_message(Bytes &bytes);
+
+//std::shared_ptr<GuiMessage> get_gui_message(Bytes &&bytes);
 
 #endif // ROBOTS_MESSAGES_H

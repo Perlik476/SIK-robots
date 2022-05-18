@@ -99,8 +99,8 @@ int main(int argc, char *argv[]) {
 
     udp::resolver resolver(io_context);
     udp::endpoint receiver_endpoint = *resolver.resolve(udp::v4(), "localhost", "2137").begin();
-    udp::socket socket(io_context);
-    socket.open(udp::v4());
+    udp::socket socket_gui_send(io_context);
+    socket_gui_send.open(udp::v4());
 
     GameState game_state;
     game_state.server_name = String("XD");
@@ -121,6 +121,8 @@ int main(int argc, char *argv[]) {
     game_state.blocks.list.push_back(std::make_shared<Position>(2, 3));
     game_state.blocks.list.push_back(std::make_shared<Position>(3, 4));
 
+    game_state.my_id = 0;
+
 //    game_state.bombs.list.push_back()
 
     auto lobby_message = LobbyMessage(game_state);
@@ -129,7 +131,7 @@ int main(int argc, char *argv[]) {
 //        std::cout << (int) bytes[i] << " ";
 //    }
 //    std::cout << "\n";
-    lobby_message.send(socket, receiver_endpoint);
+    lobby_message.send(socket_gui_send, receiver_endpoint);
 
     sleep(2);
 
@@ -140,32 +142,49 @@ int main(int argc, char *argv[]) {
 //    }
 //    std::cout << "\n";
 
-    game_message.send(socket, receiver_endpoint);
+    game_message.send(socket_gui_send, receiver_endpoint);
 
 
 
+    udp::socket socket_gui_receive(io_context, udp::endpoint(udp::v4(), arguments->port));
+
+    for (;;) {
+        boost::array<char, 256> recv_buf;
+        udp::endpoint remote_endpoint;
+        size_t size = socket_gui_receive.receive_from(boost::asio::buffer(recv_buf), remote_endpoint);
+
+        for (size_t i = 0; i < size; i++) {
+            std::cout << (int) recv_buf[i] << " ";
+        }
+        std::cout << "\n";
+
+        Bytes bytes = Bytes(get_c_array(recv_buf), size);
+        auto message = get_gui_message(bytes);
+        message->execute(game_state);
+        GameMessage(game_state).send(socket_gui_send, receiver_endpoint);
+    }
 
 //    tcp::resolver resolver(io_context);
 //    std::cout << arguments->gui_address_pure << ":" << arguments->gui_port << ":" << arguments->gui_port <<     "\n";
 //    tcp::resolver::results_type endpoints = resolver.resolve(arguments->gui_address_pure, arguments->gui_port);
-//    tcp::socket socket(io_context);
-//    boost::asio::connect(socket, endpoints);
+//    tcp::socket_gui_send socket_gui_send(io_context);
+//    boost::asio::connect(socket_gui_send, endpoints);
 
 //    tcp::resolver resolver(io_context);
 //    tcp::resolver::results_type endpoints = resolver.resolve("localhost", "2138");
-//    tcp::socket socket(io_context);
-//    boost::asio::connect(socket, endpoints);
+//    tcp::socket_gui_send socket_gui_send(io_context);
+//    boost::asio::connect(socket_gui_send, endpoints);
 //
 //    tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v4(), arguments->port));
-//    tcp::socket socket2(io_context);
+//    tcp::socket_gui_send socket2(io_context);
 //    acceptor.accept(socket2);
 
 //    boost::asio::io_context io_context;
 //    tcp::resolver resolver(io_context);
 //    std::cout << arguments->gui_address_pure << ":" << arguments->gui_port << ":" << arguments->gui_port <<     "\n";
 //    tcp::resolver::results_type endpoints = resolver.resolve(arguments->gui_address_pure, arguments->gui_port);
-//    tcp::socket socket(io_context);
-//    boost::asio::connect(socket, endpoints);
+//    tcp::socket_gui_send socket_gui_send(io_context);
+//    boost::asio::connect(socket_gui_send, endpoints);
 
     std::cout << "done\n";
 

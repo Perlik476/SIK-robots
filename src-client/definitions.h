@@ -145,6 +145,8 @@ public:
 
     Position(Uint16 &x, Uint16 &y) : x(x), y(y) {}
 
+//    Position(Position &position) : x(position.x), y(position.y) {}
+
     explicit Position(Bytes &bytes) {
         x = Uint16(bytes);
         y = Uint16(bytes);
