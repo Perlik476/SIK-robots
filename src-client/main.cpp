@@ -112,7 +112,7 @@ int main(int argc, char *argv[]) {
     game_state.bomb_timer = Uint16(3);
     game_state.players = PlayersMap();
     game_state.turn = 3;
-    std::shared_ptr<Uint8> id = std::make_shared<Uint8>(0);
+    Uint8 id = Uint8(0);
     game_state.players.map[id] =
             std::make_shared<Player>(String(arguments->player_name), String("127.0.0.1:2138"));
 
@@ -144,8 +144,6 @@ int main(int argc, char *argv[]) {
 //    std::cout << "\n";
 
     game_message.send(socket_gui_send, receiver_endpoint);
-
-
 
     udp::socket socket_gui_receive(io_context, udp::endpoint(udp::v4(), arguments->port));
 

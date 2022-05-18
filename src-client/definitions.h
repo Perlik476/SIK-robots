@@ -30,6 +30,8 @@ public:
 
     Bytes(std::string &string);
 
+    Bytes(const std::string &string);
+
     Bytes(char byte);
 
     Bytes &operator+= (const Bytes &other);
@@ -63,7 +65,7 @@ class GameState;
 
 class Serializable {
 public:
-    virtual Bytes serialize() = 0;
+    virtual Bytes serialize() const = 0;
 
     virtual ~Serializable() = default;
 };
@@ -107,7 +109,7 @@ public:
         }
     }
 
-    Bytes serialize() override {
+    Bytes serialize() const override {
         if constexpr (std::is_same_v<T, uint8_t>) {
             return { (char) value };
         }
@@ -123,6 +125,11 @@ public:
             memcpy(buffer, &value_to_net, 4);
             return { buffer, 4 };
         }
+    }
+
+    bool operator<(Uint<T> const &other) const
+    {
+        return value < other.value;
     }
 };
 
@@ -152,7 +159,7 @@ public:
         y = Uint16(bytes);
     }
 
-    Bytes serialize() override {
+    Bytes serialize() const override {
         return x.serialize() + y.serialize();
     }
 
@@ -203,10 +210,10 @@ public:
         return *this;
     }
 
-    Bytes serialize() override {
+    Bytes serialize() const override {
         auto length = static_cast<uint8_t>(string.length()); // TODO check length < 256
 
-        return Uint8(length).serialize() + string;
+        return Uint8(length).serialize() + Bytes(string);
     }
 };
 
@@ -225,7 +232,7 @@ public:
         }
     }
 
-    Bytes serialize() override {
+    Bytes serialize() const override {
         if constexpr (isSerializable<T>) {
             auto length = static_cast<uint32_t>(list.size());
 
@@ -245,23 +252,23 @@ public:
 template<isSerializable K, isSerializable T>
 class Map: public Serializable {
 public:
-    std::map<std::shared_ptr<K>, std::shared_ptr<T>> map;
+    std::map<K, std::shared_ptr<T>> map;
 
     Map() = default;
 
     explicit Map(Bytes &bytes) {
         Uint32 length = Uint32(bytes);
         for (size_t i = 0; i < length.value; i++) {
-            map[std::make_shared<K>(K(bytes))] = std::make_shared<T>(T(bytes));
+            map[K(bytes)] = std::make_shared<T>(T(bytes));
         }
     }
 
-    Bytes serialize() override {
+    Bytes serialize() const override {
         auto length = static_cast<uint32_t>(map.size());
 
         Bytes map_content;
         for (auto &[key, element] : map) {
-            map_content += key->serialize();
+            map_content += key.serialize();
             map_content += element->serialize();
         }
 
@@ -285,7 +292,7 @@ public:
 
     String get_address() { return address; }
 
-    Bytes serialize() override {
+    Bytes serialize() const override {
         return name.serialize() + address.serialize();
     }
 };
@@ -302,7 +309,7 @@ public:
         timer = Uint16(bytes);
     }
 
-    Bytes serialize() override {
+    Bytes serialize() const override {
         return position.serialize() + timer.serialize();
     }
 };

@@ -7,20 +7,20 @@
 
 class ClientMessage: public Serializable {
 private:
-    virtual char get_identifier() = 0;
+    virtual char get_identifier() const = 0;
 public:
     void send() {
         Bytes message = serialize();
     }
 
-    Bytes serialize() override {
+    Bytes serialize() const override {
         return {get_identifier()};
     }
 };
 
 class JoinMessage : public ClientMessage {
 private:
-    char get_identifier() override { return 0; }
+    char get_identifier() const override { return 0; }
     String name;
 
 public:
@@ -30,14 +30,14 @@ public:
 
     explicit JoinMessage(const String &name): name(name) {}
 
-    Bytes serialize() override {
+    Bytes serialize() const override {
         return Bytes(get_identifier()) + name.serialize();
     }
 };
 
 class PlaceBombMessage : public ClientMessage {
 private:
-    char get_identifier() override { return 1; }
+    char get_identifier() const override { return 1; }
 
 public:
     PlaceBombMessage() = default;
@@ -45,7 +45,7 @@ public:
 
 class PlaceBlockMessage : public ClientMessage {
 private:
-    char get_identifier() override { return 2; }
+    char get_identifier() const override { return 2; }
 
 public:
     PlaceBlockMessage() = default;
@@ -53,7 +53,7 @@ public:
 
 class MoveMessage : public ClientMessage {
 private:
-    char get_identifier() override { return 3; }
+    char get_identifier() const override { return 3; }
     Direction direction = Undefined;
 
 public:
@@ -61,7 +61,7 @@ public:
 
     explicit MoveMessage(const Direction direction): direction(direction) {}
 
-    Bytes serialize() override {
+    Bytes serialize() const override {
         return Bytes(get_identifier()) + Bytes(direction);
     }
 };
@@ -69,7 +69,7 @@ public:
 
 class DrawMessage: public Serializable {
 private:
-    virtual char get_identifier() = 0;
+    virtual char get_identifier() const = 0;
 public:
     void send(boost::asio::ip::udp::socket &socket,
               boost::asio::ip::udp::endpoint &endpoint) {
@@ -80,7 +80,7 @@ public:
 
 class LobbyMessage : public DrawMessage {
 private:
-    char get_identifier() override { return 0; }
+    char get_identifier() const override { return 0; }
     GameState game_state;
 
 public:
@@ -88,7 +88,7 @@ public:
 
     explicit LobbyMessage(GameState &game_state) : game_state(game_state) {}
 
-    Bytes serialize() override {
+    Bytes serialize() const override {
         return Uint8(static_cast<uint8_t>(get_identifier())).serialize()
             + game_state.server_name.serialize()
             + game_state.players_count.serialize()
@@ -103,7 +103,7 @@ public:
 
 class GameMessage : public DrawMessage {
 private:
-    char get_identifier() override { return 1; }
+    char get_identifier() const override { return 1; }
     GameState game_state;
 
 public:
@@ -111,7 +111,7 @@ public:
 
     explicit GameMessage(GameState &game_state) : game_state(game_state) {}
 
-    Bytes serialize() override {
+    Bytes serialize() const override {
         return Uint8(static_cast<uint8_t>(get_identifier())).serialize()
                + game_state.server_name.serialize()
                + game_state.size_x.serialize()
@@ -184,7 +184,7 @@ public:
     explicit AcceptedPlayerMessage(Bytes &bytes) : id(PlayerId(bytes)), player(Player(bytes)) {}
 
     void execute(GameState &game_state) override {
-        game_state.players.map[std::make_shared<PlayerId>(id)] = std::make_shared<Player>(player);
+        game_state.players.map[id] = std::make_shared<Player>(player);
     }
 };
 
@@ -241,13 +241,14 @@ public:
     PlaceBombGuiMessage() = default;
 
     void execute(GameState &game_state) override {
-        auto &map = game_state.player_positions.map;
-        for (auto &[key, el] : map) {
-            if (key->value == game_state.my_id.value) {
-                game_state.place_bomb(*el);
-                return;
-            }
-        }
+        game_state.place_bomb(*game_state.player_positions.map[game_state.my_id]);
+//        auto &map = game_state.player_positions.map;
+//        for (auto &[key, el] : map) {
+//            if (key.value == game_state.my_id.value) {
+//                game_state.place_bomb(*el);
+//                return;
+//            }
+//        }
     }
 };
 
@@ -256,13 +257,14 @@ public:
     PlaceBlockGuiMessage() = default;
 
     void execute(GameState &game_state) override {
-        auto &map = game_state.player_positions.map;
-        for (auto &[key, el] : map) {
-            if (key->value == game_state.my_id.value) {
-                game_state.place_block(*el);
-                return;
-            }
-        }
+        game_state.place_block(*game_state.player_positions.map[game_state.my_id]);
+//        auto &map = game_state.player_positions.map;
+//        for (auto &[key, el] : map) {
+//            if (key.value == game_state.my_id.value) {
+//                game_state.place_block(*el);
+//                return;
+//            }
+//        }
     }
 };
 
@@ -272,13 +274,14 @@ public:
     explicit MoveGuiMessage(Bytes &bytes) : direction((Direction) bytes.get_next_byte()) {} // TODO
 
     void execute(GameState &game_state) override {
-        auto &map = game_state.player_positions.map;
-        for (auto &[key, el] : map) {
-            if (key->value == game_state.my_id.value) {
-                game_state.try_move(direction, el);
-                return;
-            }
-        }
+        game_state.try_move(direction, game_state.player_positions.map[game_state.my_id]);
+//        auto &map = game_state.player_positions.map;
+//        for (auto &[key, el] : map) {
+//            if (key.value == game_state.my_id.value) {
+//                game_state.try_move(direction, el);
+//                return;
+//            }
+//        }
     }
 };
 

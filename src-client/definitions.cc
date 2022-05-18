@@ -18,6 +18,12 @@ Bytes::Bytes(std::string &string) {
     }
 }
 
+Bytes::Bytes(const std::string &string) {
+    for (auto byte : string) {
+        push_back(byte);
+    }
+}
+
 Bytes::Bytes(char byte) {
     push_back(byte);
 }
