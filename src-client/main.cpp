@@ -122,7 +122,7 @@ void receive_from_gui(Arguments &arguments, GameState &game_state, udp::socket &
     for (;;) {
         boost::array<char, 256> recv_buf;
         udp::endpoint remote_endpoint;
-        size_t size = socket_gui.receive_from(boost::asio::buffer(recv_buf), remote_endpoint);
+        size_t size = socket_gui.receive(boost::asio::buffer(recv_buf));
 
         for (size_t i = 0; i < size; i++) {
             std::cout << (int) recv_buf[i] << " ";
@@ -130,8 +130,8 @@ void receive_from_gui(Arguments &arguments, GameState &game_state, udp::socket &
         std::cout << "\n";
 
         Bytes bytes = Bytes(get_c_array(recv_buf), size);
-//        auto message = get_gui_message(bytes);
-//        message->execute(game_state);
+        auto message = get_gui_message(bytes);
+        message->execute(game_state, socket_gui, socket_server);
 //        GameMessage(game_state).send(socket_gui_send, receiver_endpoint);
     }
 }
@@ -146,8 +146,13 @@ void receive_from_server(Arguments &arguments, GameState &game_state, udp::socke
     boost::system::error_code error;
 
     for (;;) {
-        size_t len = socket_server.read_some(boost::asio::buffer(buf), error);
-        std::cout.write(buf.data(), len);
+        size_t size = socket_server.read_some(boost::asio::buffer(buf), error);
+        std::cout << (int) buf[0] << std::endl;
+        std::cout.write(buf.data(), size);
+        std::cout << std::endl;
+        Bytes bytes = Bytes(get_c_array(buf), size);
+        auto message = get_server_message(bytes);
+        message->execute(game_state, socket_gui, socket_server);
     }
 }
 
@@ -185,18 +190,19 @@ int main(int argc, char *argv[]) {
     game_state.my_id = 0;
 
     udp::resolver resolver(io_context);
-    udp::endpoint receiver_endpoint = *resolver.resolve(arguments->gui_address_pure, arguments->gui_port).begin();
+    udp::resolver::results_type receiver_endpoint = resolver.resolve(arguments->gui_address_pure, arguments->gui_port);
     udp::socket socket_gui_send(io_context);
-    socket_gui_send.open(receiver_endpoint.protocol());
+//    socket_gui_send.open(receiver_endpoint.protocol());
+    boost::asio::connect(socket_gui_send, receiver_endpoint);
 
     auto lobby_message = LobbyMessage(game_state);
-    lobby_message.send(socket_gui_send, receiver_endpoint);
+    lobby_message.send(socket_gui_send);
 
     sleep(2);
 
     auto game_message = GameMessage(game_state);
 
-    game_message.send(socket_gui_send, receiver_endpoint);
+    game_message.send(socket_gui_send);
 
     udp::socket socket_gui_receive(io_context, udp::endpoint(udp::v6(), arguments->port));
 
