@@ -15,11 +15,14 @@
 #include <mutex>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/asio.hpp>
+#include <boost/array.hpp>
 
 using bytes_t = char *;
+using socket_tcp = std::shared_ptr<boost::asio::ip::tcp::socket>;
+using socket_udp = std::shared_ptr<boost::asio::ip::udp::socket>;
 
 class Bytes: public std::vector<char> {
+protected:
     size_t index = 0;
 
     void processed(size_t number_of_bytes) {
@@ -42,7 +45,7 @@ public:
 
     Bytes operator+ (const Bytes &other);
 
-    char get_next_byte() {
+    virtual char get_next_byte() {
         char value = (*this)[index];
         processed(1);
         return value;
@@ -56,12 +59,43 @@ public:
         return bytes;
     }
 
+    bool is_end() {
+        std::cout << index << "/" << size() << "\n";
+        return index >= size();
+    }
+
 //    char *get_pointer() {
 //        return data() + index;
 //    }
 //
     void reset_pointer() { // TODO
         index = 0;
+    }
+};
+
+class BytesReceiver: public Bytes {
+    socket_tcp socket;
+
+    void listen() {
+        boost::array<char, 128> buf;
+        boost::system::error_code error;
+        size_t size = socket->read_some(boost::asio::buffer(buf), error);
+        for (size_t i = 0; i < size; i++) {
+            push_back(buf[i]);
+        }
+    }
+public:
+    BytesReceiver(socket_tcp &socket) : socket(socket) {
+        listen();
+    }
+
+    char get_next_byte() override {
+        if (is_end()) {
+            listen();
+        }
+        char value = (*this)[index];
+        processed(1);
+        return value;
     }
 };
 
@@ -77,7 +111,7 @@ public:
 class SocketsInfo {
 public:
     boost::asio::ip::udp::socket socket_gui;
-    boost::asio::ip::tcp::socket socket_server;
+    socket_tcp socket_server;
 
 };
 
@@ -86,8 +120,7 @@ public:
     virtual ~Executable() = default;
 
     virtual void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                         boost::asio::ip::tcp::socket &socket_server,
-                         boost::asio::ip::udp::endpoint &gui_endpoint) = 0;
+                         socket_tcp &socket_server, boost::asio::ip::udp::endpoint &gui_endpoint) = 0;
 };
 
 template<class T>
@@ -419,7 +452,7 @@ public:
     }
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server,
+                 socket_tcp &socket_server,
                  boost::asio::ip::udp::endpoint &gui_endpoint) override {
         auto bomb = std::make_shared<Bomb>(position, game_state.bomb_timer);
         game_state.bombs.list.push_back(bomb);
@@ -442,7 +475,7 @@ public:
     }
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server,
+                 socket_tcp &socket_server,
                  boost::asio::ip::udp::endpoint &gui_endpoint) override {
 //        auto bomb = game_state.bombs_map[id];
 //        remove(game_state.bombs.list.begin(), game_state.bombs.list.end(), bomb);
@@ -465,11 +498,11 @@ public:
     }
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server,
+                 socket_tcp &socket_server,
                  boost::asio::ip::udp::endpoint &gui_endpoint) override {
         // TODO
         game_state.player_positions.map[id] = std::make_shared<Position>(position.x.value, position.y.value);
-        std::cout << "PlayerMoved\nid: " << (int) id.value << ", x: " << position.x.value << ", y: " << position.y.value << "\n";
+        std::cout << "PlayerMoved: id: " << (int) id.value << ", x: " << position.x.value << ", y: " << position.y.value << "\n";
     }
 };
 
@@ -482,9 +515,10 @@ public:
     }
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server,
+                 socket_tcp &socket_server,
                  boost::asio::ip::udp::endpoint &gui_endpoint) override {
         game_state.blocks.list.push_back(std::make_shared<Position>(position.x.value, position.y.value));
+        std::cout << "BlockPlaced: x: " << position.x.value << ", y: " << position.y.value << "\n";
         // TODO
     }
 };
@@ -525,7 +559,7 @@ public:
     }
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server,
+                 socket_tcp &socket_server,
                  boost::asio::ip::udp::endpoint &gui_endpoint) override {
         switch(type) {
             case BombPlaced:

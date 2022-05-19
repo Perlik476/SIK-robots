@@ -118,7 +118,7 @@ std::shared_ptr<Arguments> parse_arguments(int argc, char *argv[]) {
 //    return 0;
 //}
 
-void receive_from_gui(Arguments &arguments, GameState &game_state, udp::socket &socket_gui, tcp::socket &socket_server,
+void receive_from_gui(Arguments &arguments, GameState &game_state, udp::socket &socket_gui, socket_tcp &socket_server,
                       udp::endpoint &gui_endpoint) {
     for (;;) {
         boost::array<char, 256> recv_buf;
@@ -131,32 +131,36 @@ void receive_from_gui(Arguments &arguments, GameState &game_state, udp::socket &
         std::cout << "\n";
 
         Bytes bytes = Bytes(get_c_array(recv_buf), size);
-        auto message = get_gui_message(bytes);
-        message->execute(game_state, socket_gui, socket_server, gui_endpoint);
-//        GameMessage(game_state).send(socket_gui_send, receiver_endpoint);
+        while (!bytes.is_end()) {
+            auto message = get_gui_message(bytes);
+            message->execute(game_state, socket_gui, socket_server, gui_endpoint);
+        }
     }
 }
 
 void receive_from_server(Arguments &arguments, GameState &game_state, udp::socket &socket_gui,
-                         tcp::socket &socket_server, udp::endpoint &gui_endpoint) {
+                         socket_tcp &socket_server, udp::endpoint &gui_endpoint) {
     JoinMessage(arguments.player_name).send(socket_server);
 
     std::cout << "sent to server." << std::endl;
 
-    boost::array<char, 128> buf;
-    boost::system::error_code error;
+//    boost::array<char, 128> buf;
+//    boost::system::error_code error;
 
     for (;;) {
-        std::cout << "\n\n";
-        size_t size = socket_server.read_some(boost::asio::buffer(buf), error);
-        for (size_t i = 0; i < size; i++)
-            std::cout << (int) buf[i] << " ";
-        std::cout << std::endl;
-        std::cout.write(buf.data(), size);
-        std::cout << std::endl;
-        Bytes bytes = Bytes(get_c_array(buf), size);
-        auto message = get_server_message(bytes);
-        message->execute(game_state, socket_gui, socket_server, gui_endpoint);
+//        std::cout << "\n\n";
+//        size_t size = socket_server->read_some(boost::asio::buffer(buf), error);
+//        for (size_t i = 0; i < size; i++)
+//            std::cout << (int) buf[i] << " ";
+//        std::cout << std::endl;
+//        std::cout.write(buf.data(), size);
+//        std::cout << std::endl;
+//        Bytes bytes = Bytes(get_c_array(buf), size);
+        BytesReceiver bytes = BytesReceiver(socket_server);
+        while (!bytes.is_end()) {
+            auto message = get_server_message(bytes);
+            message->execute(game_state, socket_gui, socket_server, gui_endpoint);
+        }
 //        MoveMessage(Direction::Right).send(socket_server);
 //        PlaceBombMessage().send(socket_server);
     }
@@ -213,16 +217,16 @@ int main(int argc, char *argv[]) {
 
     tcp::resolver resolver_tcp(io_context);
     tcp::resolver::results_type endpoints = resolver_tcp.resolve(arguments->server_address_pure, arguments->server_port);
-    tcp::socket socket_server_send(io_context);
-    boost::asio::connect(socket_server_send, endpoints);
+    auto socket_server = std::make_shared<tcp::socket>(io_context);
+    boost::asio::connect(*socket_server, endpoints);
     tcp::no_delay option(true);
-    socket_server_send.set_option(option);
+    socket_server->set_option(option);
 
     std::thread receive_from_gui_thread{receive_from_gui, std::ref(*arguments), std::ref(game_state), std::ref(socket_gui_receive),
-                                        std::ref(socket_server_send), std::ref(receiver_endpoint)};
+                                        std::ref(socket_server), std::ref(receiver_endpoint)};
 
     std::thread receive_from_server_thread{receive_from_server, std::ref(*arguments), std::ref(game_state),
-                                           std::ref(socket_gui_receive), std::ref(socket_server_send), std::ref(receiver_endpoint)};
+                                           std::ref(socket_gui_receive), std::ref(socket_server), std::ref(receiver_endpoint)};
 
     receive_from_gui_thread.join();
     receive_from_server_thread.join();
