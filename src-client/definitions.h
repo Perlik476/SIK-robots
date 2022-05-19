@@ -74,12 +74,20 @@ public:
     virtual ~Serializable() = default;
 };
 
+class SocketsInfo {
+public:
+    boost::asio::ip::udp::socket socket_gui;
+    boost::asio::ip::tcp::socket socket_server;
+
+};
+
 class Executable {
 public:
     virtual ~Executable() = default;
 
     virtual void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                         boost::asio::ip::tcp::socket &socket_server) = 0;
+                         boost::asio::ip::tcp::socket &socket_server,
+                         boost::asio::ip::udp::endpoint &gui_endpoint) = 0;
 };
 
 template<class T>
@@ -264,7 +272,9 @@ public:
     explicit Map(Bytes &bytes) {
         Uint32 length = Uint32(bytes);
         for (size_t i = 0; i < length.value; i++) {
-            map[K(bytes)] = std::make_shared<T>(T(bytes));
+            isSerializable auto key = K(bytes);
+            auto value = std::make_shared<T>(T(bytes));
+            map[key] = value;
         }
     }
 
@@ -340,6 +350,7 @@ public:
     Map<PlayerId, Position> player_positions;
     List<Position> blocks;
     List<Bomb> bombs;
+    std::map<BombId, std::shared_ptr<Bomb>> bombs_map;
     List<Position> explosions;
     Map<PlayerId, Score> scores;
 
@@ -408,8 +419,11 @@ public:
     }
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server) override {
-//        game_state.bombs.list
+                 boost::asio::ip::tcp::socket &socket_server,
+                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
+        auto bomb = std::make_shared<Bomb>(position, game_state.bomb_timer);
+        game_state.bombs.list.push_back(bomb);
+        game_state.bombs_map[id] = bomb;
 //      TODO
         std::cout << "BombPlaced\nid: " << id.value << ", x: " << position.x.value << ", y: " << position.y.value << "\n";
     }
@@ -428,7 +442,14 @@ public:
     }
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server) override {
+                 boost::asio::ip::tcp::socket &socket_server,
+                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
+//        auto bomb = game_state.bombs_map[id];
+//        remove(game_state.bombs.list.begin(), game_state.bombs.list.end(), bomb);
+//        for (const auto &b : game_state.bombs.list) {
+//            if (b == bomb) {
+//            }
+//        }
         // TODO
     }
 };
@@ -444,8 +465,10 @@ public:
     }
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server) override {
+                 boost::asio::ip::tcp::socket &socket_server,
+                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
         // TODO
+        game_state.player_positions.map[id] = std::make_shared<Position>(position.x.value, position.y.value);
         std::cout << "PlayerMoved\nid: " << (int) id.value << ", x: " << position.x.value << ", y: " << position.y.value << "\n";
     }
 };
@@ -459,7 +482,9 @@ public:
     }
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server) override {
+                 boost::asio::ip::tcp::socket &socket_server,
+                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
+        game_state.blocks.list.push_back(std::make_shared<Position>(position.x.value, position.y.value));
         // TODO
     }
 };
@@ -500,19 +525,20 @@ public:
     }
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server) override {
+                 boost::asio::ip::tcp::socket &socket_server,
+                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
         switch(type) {
             case BombPlaced:
-                std::get<BombPlacedEvent>(event).execute(game_state, socket_gui, socket_server);
+                std::get<BombPlacedEvent>(event).execute(game_state, socket_gui, socket_server, gui_endpoint);
                 break;
             case BombExploded:
-                std::get<BombExplodedEvent>(event).execute(game_state, socket_gui, socket_server);
+                std::get<BombExplodedEvent>(event).execute(game_state, socket_gui, socket_server, gui_endpoint);
                 break;
             case PlayerMoved:
-                std::get<PlayerMovedEvent>(event).execute(game_state, socket_gui, socket_server);
+                std::get<PlayerMovedEvent>(event).execute(game_state, socket_gui, socket_server, gui_endpoint);
                 break;
             case BlockPlaced:
-                std::get<BlockPlacedEvent>(event).execute(game_state, socket_gui, socket_server);
+                std::get<BlockPlacedEvent>(event).execute(game_state, socket_gui, socket_server, gui_endpoint);
                 break;
             default:
                 // TODO

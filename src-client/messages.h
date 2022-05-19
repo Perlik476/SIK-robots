@@ -12,7 +12,7 @@ private:
 public:
     void send(boost::asio::ip::tcp::socket &socket) {
         Bytes message = serialize();
-        socket.write_some(boost::asio::buffer((std::vector<char>) message));
+        socket.send(boost::asio::buffer((std::vector<char>) message));
     }
 
     Bytes serialize() const override {
@@ -78,9 +78,10 @@ public:
 //        Bytes message = serialize();
 //        socket.send_to(boost::asio::buffer((std::vector<char>) message), endpoint);
 //    }
-    void send(boost::asio::ip::udp::socket &socket) {
+    void send(boost::asio::ip::udp::socket &socket,
+              boost::asio::ip::udp::endpoint &endpoint) {
         Bytes message = serialize();
-        socket.send(boost::asio::buffer((std::vector<char>) message));
+        socket.send_to(boost::asio::buffer((std::vector<char>) message), endpoint);
     }
 };
 
@@ -113,7 +114,7 @@ private:
     GameState game_state;
 
 public:
-    GameMessage() = default;
+    GameMessage() = delete;
 
     explicit GameMessage(GameState &game_state) : game_state(game_state) {}
 
@@ -172,7 +173,8 @@ public:
     }
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server) override {
+                 boost::asio::ip::tcp::socket &socket_server,
+                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
         game_state.server_name = server_name;
         game_state.players_count = players_count;
         game_state.size_x = size_x;
@@ -182,6 +184,7 @@ public:
         game_state.bomb_timer = bomb_timer;
         std::cout << "Hello: " << server_name.string << ": " << (int) players_count.value << ", " << size_x.value << "x" <<
             size_y.value << ", " << game_length.value << ", " << explosion_radius.value << ", " << bomb_timer.value << std::endl;
+        LobbyMessage(game_state).send(socket_gui, gui_endpoint);
     }
 };
 
@@ -193,7 +196,8 @@ public:
     explicit AcceptedPlayerMessage(Bytes &bytes) : id(PlayerId(bytes)), player(Player(bytes)) {}
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server) override {
+                 boost::asio::ip::tcp::socket &socket_server,
+                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
         game_state.players.map[id] = std::make_shared<Player>(player);
         std::cout << "AcceptedPlayer: " << id.value << ": " << player.get_name().string << ", " << player.get_address().string << std::endl;
     }
@@ -206,8 +210,15 @@ public:
     explicit GameStartedMessage(Bytes &bytes) : players(PlayersMap(bytes)) {}
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server) override {
+                 boost::asio::ip::tcp::socket &socket_server,
+                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
         game_state.players = players;
+        std::cout << "GameStarted: \n";
+        game_state.scores = PlayerScoresMap();
+        for (auto &[key, value] : game_state.players.map) {
+            std::cout << (int) key.value << ": name: " << value->get_name().string << ", addr: " << value->get_address().string << "\n";
+            game_state.scores.map[key] = std::make_shared<Score>(0);
+        }
     }
 };
 
@@ -219,14 +230,16 @@ public:
     explicit TurnMessage(Bytes &bytes) : turn(Uint16(bytes)), events(List<Event>(bytes)) {}
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server) override {
+                 boost::asio::ip::tcp::socket &socket_server,
+                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
         // TODO
         std::cout << "TurnMessage:\nturn: " << turn.value << "\n";
         std::cout << "list length: " << events.list.size() << "\n";
+        game_state.turn = turn.value;
         for (auto &event : events.list) {
-            event->execute(game_state, socket_gui, socket_server);
+            event->execute(game_state, socket_gui, socket_server, gui_endpoint);
         }
-        GameMessage().send(socket_gui);
+        GameMessage(game_state).send(socket_gui, gui_endpoint);
     }
 };
 
@@ -237,7 +250,8 @@ public:
     explicit GameEndedMessage(Bytes &bytes) : scores(PlayerScoresMap(bytes)) {}
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server) override {
+                 boost::asio::ip::tcp::socket &socket_server,
+                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
         game_state.scores = scores;
         // TODO
     }
@@ -257,7 +271,8 @@ public:
     PlaceBombGuiMessage() = default;
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server) override {
+                 boost::asio::ip::tcp::socket &socket_server,
+                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
         std::cout << "PlaceBomb sent." << std::endl;
         PlaceBombMessage().send(socket_server);
 //        game_state.place_bomb(*game_state.player_positions.map[game_state.my_id]);
@@ -269,7 +284,8 @@ public:
     PlaceBlockGuiMessage() = default;
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server) override {
+                 boost::asio::ip::tcp::socket &socket_server,
+                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
         std::cout << "PlaceBlock sent." << std::endl;
         PlaceBlockMessage().send(socket_server);
 //        game_state.place_block(*game_state.player_positions.map[game_state.my_id]);
@@ -282,9 +298,10 @@ public:
     explicit MoveGuiMessage(Bytes &bytes) : direction((Direction) bytes.get_next_byte()) {} // TODO
 
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 boost::asio::ip::tcp::socket &socket_server) override {
-        std::cout << "Move sent." << std::endl;
-        MoveMessage().send(socket_server);
+                 boost::asio::ip::tcp::socket &socket_server,
+                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
+        std::cout << "Move sent:" << (int) direction << std::endl;
+        MoveMessage(direction).send(socket_server);
 //        game_state.try_move(direction, game_state.player_positions.map[game_state.my_id]);
     }
 };

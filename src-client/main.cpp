@@ -118,11 +118,12 @@ std::shared_ptr<Arguments> parse_arguments(int argc, char *argv[]) {
 //    return 0;
 //}
 
-void receive_from_gui(Arguments &arguments, GameState &game_state, udp::socket &socket_gui, tcp::socket &socket_server) {
+void receive_from_gui(Arguments &arguments, GameState &game_state, udp::socket &socket_gui, tcp::socket &socket_server,
+                      udp::endpoint &gui_endpoint) {
     for (;;) {
         boost::array<char, 256> recv_buf;
         udp::endpoint remote_endpoint;
-        size_t size = socket_gui.receive(boost::asio::buffer(recv_buf));
+        size_t size = socket_gui.receive_from(boost::asio::buffer(recv_buf), remote_endpoint);
 
         for (size_t i = 0; i < size; i++) {
             std::cout << (int) recv_buf[i] << " ";
@@ -131,13 +132,13 @@ void receive_from_gui(Arguments &arguments, GameState &game_state, udp::socket &
 
         Bytes bytes = Bytes(get_c_array(recv_buf), size);
         auto message = get_gui_message(bytes);
-        message->execute(game_state, socket_gui, socket_server);
+        message->execute(game_state, socket_gui, socket_server, gui_endpoint);
 //        GameMessage(game_state).send(socket_gui_send, receiver_endpoint);
     }
 }
 
 void receive_from_server(Arguments &arguments, GameState &game_state, udp::socket &socket_gui,
-                         tcp::socket &socket_server) {
+                         tcp::socket &socket_server, udp::endpoint &gui_endpoint) {
     JoinMessage(arguments.player_name).send(socket_server);
 
     std::cout << "sent to server." << std::endl;
@@ -146,13 +147,18 @@ void receive_from_server(Arguments &arguments, GameState &game_state, udp::socke
     boost::system::error_code error;
 
     for (;;) {
+        std::cout << "\n\n";
         size_t size = socket_server.read_some(boost::asio::buffer(buf), error);
-        std::cout << (int) buf[0] << std::endl;
+        for (size_t i = 0; i < size; i++)
+            std::cout << (int) buf[i] << " ";
+        std::cout << std::endl;
         std::cout.write(buf.data(), size);
         std::cout << std::endl;
         Bytes bytes = Bytes(get_c_array(buf), size);
         auto message = get_server_message(bytes);
-        message->execute(game_state, socket_gui, socket_server);
+        message->execute(game_state, socket_gui, socket_server, gui_endpoint);
+//        MoveMessage(Direction::Right).send(socket_server);
+//        PlaceBombMessage().send(socket_server);
     }
 }
 
@@ -168,41 +174,40 @@ int main(int argc, char *argv[]) {
     boost::asio::io_context io_context;
 
     auto game_state = GameState();
-    game_state.server_name = String("XD");
-    game_state.players_count = Uint8(2);
-    game_state.size_x = Uint16(5);
-    game_state.size_y = Uint16(5);
-    game_state.game_length = Uint16(10);
-    game_state.explosion_radius = Uint16(3);
-    game_state.bomb_timer = Uint16(3);
-    game_state.players = PlayersMap();
-    game_state.turn = 3;
-    Uint8 id = Uint8(0);
-    game_state.players.map[id] =
-            std::make_shared<Player>(String(arguments->player_name), String("127.0.0.1:2138"));
-
-    game_state.player_positions.map[id] = std::make_shared<Position>(1, 1);
-
-    game_state.blocks.list.push_back(std::make_shared<Position>(2, 3));
-    game_state.blocks.list.push_back(std::make_shared<Position>(3, 4));
-    game_state.scores.map[id] = std::make_shared<Score>(0);
-
-    game_state.my_id = 0;
+//    game_state.server_name = String("XD");
+//    game_state.players_count = Uint8(2);
+//    game_state.size_x = Uint16(5);
+//    game_state.size_y = Uint16(5);
+//    game_state.game_length = Uint16(10);
+//    game_state.explosion_radius = Uint16(3);
+//    game_state.bomb_timer = Uint16(3);
+//    game_state.players = PlayersMap();
+//    game_state.turn = 3;
+//    Uint8 id = Uint8(0);
+//    game_state.players.map[id] =
+//            std::make_shared<Player>(String(arguments->player_name), String("127.0.0.1:2138"));
+//
+//    game_state.player_positions.map[id] = std::make_shared<Position>(1, 1);
+//
+//    game_state.blocks.list.push_back(std::make_shared<Position>(2, 3));
+//    game_state.blocks.list.push_back(std::make_shared<Position>(3, 4));
+//    game_state.scores.map[id] = std::make_shared<Score>(0);
+//
+//    game_state.my_id = 0;
 
     udp::resolver resolver(io_context);
-    udp::resolver::results_type receiver_endpoint = resolver.resolve(arguments->gui_address_pure, arguments->gui_port);
+    udp::endpoint receiver_endpoint = *resolver.resolve(arguments->gui_address_pure, arguments->gui_port).begin();
     udp::socket socket_gui_send(io_context);
-//    socket_gui_send.open(receiver_endpoint.protocol());
-    boost::asio::connect(socket_gui_send, receiver_endpoint);
+    socket_gui_send.open(receiver_endpoint.protocol());
 
-    auto lobby_message = LobbyMessage(game_state);
-    lobby_message.send(socket_gui_send);
-
-    sleep(2);
-
-    auto game_message = GameMessage(game_state);
-
-    game_message.send(socket_gui_send);
+//    auto lobby_message = LobbyMessage(game_state);
+//    lobby_message.send(socket_gui_send, receiver_endpoint);
+//
+//    sleep(2);
+//
+//    auto game_message = GameMessage(game_state);
+//
+//    game_message.send(socket_gui_send, receiver_endpoint);
 
     udp::socket socket_gui_receive(io_context, udp::endpoint(udp::v6(), arguments->port));
 
@@ -210,12 +215,14 @@ int main(int argc, char *argv[]) {
     tcp::resolver::results_type endpoints = resolver_tcp.resolve(arguments->server_address_pure, arguments->server_port);
     tcp::socket socket_server_send(io_context);
     boost::asio::connect(socket_server_send, endpoints);
+    tcp::no_delay option(true);
+    socket_server_send.set_option(option);
 
     std::thread receive_from_gui_thread{receive_from_gui, std::ref(*arguments), std::ref(game_state), std::ref(socket_gui_receive),
-                                        std::ref(socket_server_send)};
+                                        std::ref(socket_server_send), std::ref(receiver_endpoint)};
 
     std::thread receive_from_server_thread{receive_from_server, std::ref(*arguments), std::ref(game_state),
-                                           std::ref(socket_gui_receive), std::ref(socket_server_send)};
+                                           std::ref(socket_gui_receive), std::ref(socket_server_send), std::ref(receiver_endpoint)};
 
     receive_from_gui_thread.join();
     receive_from_server_thread.join();
