@@ -190,6 +190,14 @@ using BombId = Uint32;
 using Score = Uint32;
 using Coordinate = Uint16;
 
+enum Direction: char {
+    Up,
+    Right,
+    Down,
+    Left,
+    Undefined
+};
+
 class Position: public Serializable {
 public:
     Uint16 x, y;
@@ -226,14 +234,36 @@ public:
     Position left() {
         return Position(x.value - 1, y.value);
     }
-};
 
-enum Direction: char {
-    Up,
-    Right,
-    Down,
-    Left,
-    Undefined
+    Position next(Direction &direction) {
+        switch(direction) {
+            case Direction::Up:
+                return up();
+            case Direction::Right:
+                return right();
+            case Direction::Down:
+                return down();
+            case Direction::Left:
+                return left();
+            default:
+                return Position(0, 0); // TODO
+        }
+    }
+
+    bool is_next_proper(Direction &direction, Uint16 size_x, Uint16 size_y) {
+        switch(direction) {
+            case Direction::Up:
+                return y.value < size_y.value - 1;
+            case Direction::Right:
+                return x.value < size_x.value - 1;
+            case Direction::Down:
+                return y.value > 0;
+            case Direction::Left:
+                return x.value > 0;
+            default:
+                return false;
+        }
+    }
 };
 
 class String: public Serializable {
@@ -388,59 +418,6 @@ public:
     std::map<BombId, std::shared_ptr<Bomb>> bombs_map;
     List<Position> explosions;
     Map<PlayerId, Score> scores;
-
-    PlayerId my_id;
-
-    std::shared_ptr<std::mutex> mutex;
-
-    bool is_block_on_position(const Position &position) {
-        for (const auto &block_position : blocks.list) {
-            if (block_position->x.value == position.x.value
-                && block_position->y.value == position.y.value) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    void place_bomb(Position position) {
-        bombs.list.push_back(std::make_shared<Bomb>(
-                position, bomb_timer));
-    }
-
-    void place_block(Position position) {
-        if (!is_block_on_position(position)) {
-            blocks.list.push_back(std::make_shared<Position>(position.x, position.y));
-        }
-    }
-
-    void try_move(Direction direction, const std::shared_ptr<Position> &position) {
-        switch(direction) {
-            case Direction::Down:
-                if (!is_block_on_position(position->down()) && position->y.value > 0) {
-                    position->y.value--;
-                }
-                break;
-            case Direction::Left:
-                if (!is_block_on_position(position->left()) && position->x.value > 0) {
-                    position->x.value--;
-                }
-                break;
-            case Direction::Up:
-                if (!is_block_on_position(position->up()) && position->y.value < size_y.value - 1) {
-                    position->y.value++;
-                }
-                break;
-            case Direction::Right:
-                if (!is_block_on_position(position->right()) && position->x.value < size_x.value - 1) {
-                    position->x.value++;
-                }
-                break;
-            default:
-                // TODO
-                break;
-        }
-    }
 };
 
 class BombPlacedEvent: public Executable {
@@ -481,6 +458,8 @@ public:
                  boost::asio::ip::udp::endpoint &gui_endpoint) override {
         std::cout << "BombExploded!\n";
         auto bomb = game_state.bombs_map[id];
+        auto bomb_position = bomb->position;
+
         auto it_bombs = game_state.bombs.list.begin();
         while (it_bombs != game_state.bombs.list.end()) {
             if (*it_bombs == bomb) {
@@ -489,6 +468,7 @@ public:
             }
             it_bombs++;
         }
+
         for (auto &position_ptr : blocks_destroyed.list) {
             auto it_blocks = game_state.blocks.list.begin();
             while (it_blocks != game_state.blocks.list.end()) {
@@ -497,6 +477,30 @@ public:
                     break;
                 }
                 it_blocks++;
+            }
+        }
+
+        game_state.explosions.list.push_back(std::make_shared<Position>(bomb_position.x.value, bomb_position.y.value));
+        for (auto &block : blocks_destroyed.list) {
+            if (bomb_position.x.value == block->x.value && bomb_position.y.value == block->y.value) {
+                return;
+            }
+        }
+
+        for (size_t i = 0; i < 4; i++) {
+            auto direction = static_cast<Direction>(i);
+            auto current_position = bomb_position;
+            bool cont = true;
+            for (size_t r = 0; r < game_state.explosion_radius.value && cont
+                && current_position.is_next_proper(direction, game_state.size_x, game_state.size_y); r++) {
+                current_position = current_position.next(direction);
+                game_state.explosions.list.push_back(std::make_shared<Position>(current_position.x.value, current_position.y.value));
+                for (auto &block : blocks_destroyed.list) {
+                    if (current_position.x.value == block->x.value && current_position.y.value == block->y.value) {
+                        cont = false;
+                        break;
+                    }
+                }
             }
         }
 //        remove(game_state.bombs.list.begin(), game_state.bombs.list.end(), bomb);
