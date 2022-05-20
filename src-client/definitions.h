@@ -60,7 +60,7 @@ public:
     }
 
     bool is_end() {
-        std::cout << index << "/" << size() << "\n";
+//        std::cout << index << "/" << size() << "\n";
         return index >= size();
     }
 
@@ -119,8 +119,10 @@ class Executable {
 public:
     virtual ~Executable() = default;
 
-    virtual void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                         socket_tcp &socket_server, boost::asio::ip::udp::endpoint &gui_endpoint) = 0;
+    virtual void execute([[maybe_unused]] GameState &game_state,
+                         [[maybe_unused]] boost::asio::ip::udp::socket &socket_gui,
+                         [[maybe_unused]] socket_tcp &socket_server,
+                         [[maybe_unused]] boost::asio::ip::udp::endpoint &gui_endpoint) = 0;
 };
 
 template<class T>
@@ -477,8 +479,33 @@ public:
     void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
                  socket_tcp &socket_server,
                  boost::asio::ip::udp::endpoint &gui_endpoint) override {
-//        auto bomb = game_state.bombs_map[id];
+        std::cout << "BombExploded!\n";
+        auto bomb = game_state.bombs_map[id];
+        auto it_bombs = game_state.bombs.list.begin();
+        while (it_bombs != game_state.bombs.list.end()) {
+            if (*it_bombs == bomb) {
+                game_state.bombs.list.erase(it_bombs);
+                break;
+            }
+            it_bombs++;
+        }
+        for (auto &position_ptr : blocks_destroyed.list) {
+            auto it_blocks = game_state.blocks.list.begin();
+            while (it_blocks != game_state.blocks.list.end()) {
+                if ((*it_blocks)->x.value == position_ptr->x.value && (*it_blocks)->y.value == position_ptr->y.value) {
+                    game_state.blocks.list.erase(it_blocks);
+                    break;
+                }
+                it_blocks++;
+            }
+        }
 //        remove(game_state.bombs.list.begin(), game_state.bombs.list.end(), bomb);
+//        for (auto &player_id : robots_destroyed.list) {
+//            game_state.scores()
+//        }
+//        for (auto &position : blocks_destroyed.list) {
+//            remove(game_state.blocks.list.begin(), game_state.blocks.list.end(), position);
+//        }
 //        for (const auto &b : game_state.bombs.list) {
 //            if (b == bomb) {
 //            }
