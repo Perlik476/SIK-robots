@@ -447,6 +447,7 @@ using BombsList = List<Bomb>;
 
 class GameState {
 public:
+    bool is_joined = false;
     String server_name;
     Uint8 players_count;
     Uint16 size_x;

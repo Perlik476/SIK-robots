@@ -148,7 +148,7 @@ enum ServerMessageType: char {
     AcceptedPlayer,
     GameStarted,
     Turn,
-    GameEnded
+    GameEnded,
 };
 
 class ServerMessage: public Executable {};
@@ -201,6 +201,7 @@ public:
                  boost::asio::ip::udp::endpoint &gui_endpoint) override {
         game_state.players.map[id] = std::make_shared<Player>(player);
         std::cout << "AcceptedPlayer: " << id.value << ": " << player.get_name().string << ", " << player.get_address().string << std::endl;
+        LobbyMessage(game_state).send(socket_gui, gui_endpoint);
     }
 };
 
@@ -260,6 +261,7 @@ public:
                  socket_tcp &socket_server,
                  boost::asio::ip::udp::endpoint &gui_endpoint) override {
         game_state.scores = scores;
+        game_state.is_joined = false;
         GameMessage(game_state).send(socket_gui, gui_endpoint);
         // TODO
     }

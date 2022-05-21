@@ -2,6 +2,7 @@
 
 std::shared_ptr<ServerMessage> get_server_message(Bytes &bytes) {
     char type = bytes.get_next_byte();
+    std::cout << "server message: " << (int) type << "\n";
     switch(type) {
         case ServerMessageType::Hello:
             return std::make_shared<HelloMessage>(bytes);
