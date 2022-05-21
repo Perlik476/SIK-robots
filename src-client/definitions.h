@@ -418,6 +418,23 @@ public:
     std::map<BombId, std::shared_ptr<Bomb>> bombs_map;
     List<Position> explosions;
     Map<PlayerId, Score> scores;
+    std::map<PlayerId, bool> death_this_round;
+
+    void prepare_for_turn() {
+        explosions = List<Position>();
+        death_this_round.clear();
+        for (auto [player_id, _] : scores.map) {
+            death_this_round[player_id] = false;
+        }
+    }
+
+    void after_turn() {
+        auto it = scores.map.begin();
+        while (it != scores.map.end()) {
+            it->second->value += death_this_round[it->first];
+            it++;
+        }
+    }
 };
 
 class BombPlacedEvent: public Executable {
@@ -467,6 +484,10 @@ public:
                 break;
             }
             it_bombs++;
+        }
+
+        for (auto &player_id : robots_destroyed.list) {
+            game_state.death_this_round[*player_id] = true;
         }
 
         for (auto &position_ptr : blocks_destroyed.list) {

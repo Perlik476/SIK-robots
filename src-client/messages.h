@@ -235,11 +235,15 @@ public:
         // TODO
         std::cout << "TurnMessage:\nturn: " << turn.value << "\n";
         std::cout << "list length: " << events.list.size() << "\n";
-        game_state.explosions = List<Position>();
+        game_state.prepare_for_turn();
+
         game_state.turn = turn.value;
         for (auto &event : events.list) {
             event->execute(game_state, socket_gui, socket_server, gui_endpoint);
         }
+
+        game_state.after_turn();
+
         GameMessage(game_state).send(socket_gui, gui_endpoint);
     }
 };
