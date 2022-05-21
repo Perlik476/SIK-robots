@@ -303,14 +303,14 @@ template<class T>
 requires isSerializable<T> || isExecutable<T> // TODO
 class List: public Serializable {
 public:
-    std::vector<std::shared_ptr<T>> list;
+    std::vector<T> list;
 
     List() = default;
 
     explicit List(Bytes &bytes) {
         Uint32 length = Uint32(bytes);
         for (size_t i = 0; i < length.value; i++) {
-            list.push_back(std::make_shared<T>(T(bytes)));
+            list.push_back(T(bytes));
         }
     }
 
@@ -320,7 +320,7 @@ public:
 
             Bytes list_content;
             for (auto &element: list) {
-                list_content += element->serialize();
+                list_content += element.serialize();
             }
 
             return Uint32(length).serialize() + list_content;
@@ -420,7 +420,9 @@ public:
     Position position;
     Uint16 timer;
 
-    Bomb(Position &position, Uint16 &timer): position(position), timer(timer) {}
+    Bomb() = default;
+
+    explicit Bomb(Position &position, Uint16 &timer): position(position), timer(timer) {}
 
     explicit Bomb(Bytes &bytes) {
         position = Position(bytes);
@@ -429,6 +431,10 @@ public:
 
     Bytes serialize() const override {
         return position.serialize() + timer.serialize();
+    }
+
+    bool operator==(const Bomb &other) const {
+        return position == other.position && timer == other.timer;
     }
 };
 
@@ -454,7 +460,7 @@ public:
     Map<PlayerId, Position> player_positions;
     List<Position> blocks;
     List<Bomb> bombs;
-    std::map<BombId, std::shared_ptr<Bomb>> bombs_map;
+    std::map<BombId, Bomb> bombs_map;
     Set<Position> explosions;
     Map<PlayerId, Score> scores;
     std::map<PlayerId, bool> death_this_round;
@@ -501,7 +507,7 @@ public:
     }
 
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
-        auto bomb = std::make_shared<Bomb>(position, game_state.bomb_timer);
+        auto bomb = Bomb(position, game_state.bomb_timer);
         game_state.bombs.list.push_back(bomb);
         game_state.bombs_map[id] = bomb;
 //      TODO
@@ -524,7 +530,7 @@ public:
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         std::cout << "BombExploded!\n";
         auto bomb = game_state.bombs_map[id];
-        auto bomb_position = bomb->position;
+        auto bomb_position = bomb.position;
 
         auto it_bombs = game_state.bombs.list.begin();
         while (it_bombs != game_state.bombs.list.end()) {
@@ -536,13 +542,13 @@ public:
         }
 
         for (auto &player_id : robots_destroyed.list) {
-            game_state.death_this_round[*player_id] = true;
+            game_state.death_this_round[player_id] = true;
         }
 
-        for (auto &position_ptr : blocks_destroyed.list) {
+        for (auto &position : blocks_destroyed.list) {
             auto it_blocks = game_state.blocks.list.begin();
             while (it_blocks != game_state.blocks.list.end()) {
-                if ((*it_blocks)->x.value == position_ptr->x.value && (*it_blocks)->y.value == position_ptr->y.value) {
+                if (it_blocks->x.value == position.x.value && it_blocks->y.value == position.y.value) {
                     game_state.blocks.list.erase(it_blocks);
                     break;
                 }
@@ -552,7 +558,7 @@ public:
 
         game_state.explosions.set.insert(Position(bomb_position.x.value, bomb_position.y.value));
         for (auto &block : blocks_destroyed.list) {
-            if (bomb_position.x.value == block->x.value && bomb_position.y.value == block->y.value) {
+            if (bomb_position.x.value == block.x.value && bomb_position.y.value == block.y.value) {
                 return;
             }
         }
@@ -566,7 +572,7 @@ public:
                 current_position = current_position.next(direction);
                 game_state.explosions.set.insert(Position(current_position.x.value, current_position.y.value));
                 for (auto &block : blocks_destroyed.list) {
-                    if (current_position.x.value == block->x.value && current_position.y.value == block->y.value) {
+                    if (current_position.x.value == block.x.value && current_position.y.value == block.y.value) {
                         cont = false;
                         break;
                     }
@@ -614,7 +620,7 @@ public:
     }
 
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
-        game_state.blocks.list.push_back(std::make_shared<Position>(position.x.value, position.y.value));
+        game_state.blocks.list.push_back(position);
         std::cout << "BlockPlaced: x: " << position.x.value << ", y: " << position.y.value << "\n";
         // TODO
     }

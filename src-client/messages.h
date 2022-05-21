@@ -228,7 +228,7 @@ public:
 
         game_state.turn = turn.value;
         for (auto &event : events.list) {
-            event->execute(game_state, sockets_info);
+            event.execute(game_state, sockets_info);
         }
 
         game_state.after_turn();
