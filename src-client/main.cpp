@@ -120,7 +120,6 @@ void receive_from_gui(Arguments &arguments, GameState &game_state, udp::socket &
                 std::cout << "message sent." << std::endl;
                 message->execute(game_state, socket_gui, socket_server, gui_endpoint);
             }
-
         }
     }
 }
@@ -134,7 +133,8 @@ void receive_from_server(Arguments &arguments, GameState &game_state, udp::socke
             if (message == nullptr) {
                 std::cout << "wrong message received from server.\n";
                 socket_server->close();
-                break;
+                game_state.is_joined = false; // TODO
+                return;
             }
             std::cout << "executing server message.\n";
             message->execute(game_state, socket_gui, socket_server, gui_endpoint);
@@ -172,9 +172,10 @@ int main(int argc, char *argv[]) {
     udp::socket socket_gui_receive(io_context, udp::endpoint(udp::v6(), arguments->port));
 
     tcp::resolver resolver_tcp(io_context);
-    tcp::resolver::results_type endpoints = resolver_tcp.resolve(arguments->server_address_pure, arguments->server_port);
+    tcp::endpoint endpoints = *resolver_tcp.resolve(arguments->server_address_pure, arguments->server_port);
     auto socket_server = std::make_shared<tcp::socket>(io_context);
-    boost::asio::connect(*socket_server, endpoints);
+    boost::system::error_code err;
+    socket_server->connect(endpoints);
     tcp::no_delay option(true);
     socket_server->set_option(option);
 
@@ -184,8 +185,9 @@ int main(int argc, char *argv[]) {
     std::thread receive_from_server_thread{receive_from_server, std::ref(*arguments), std::ref(game_state),
                                            std::ref(socket_gui_receive), std::ref(socket_server), std::ref(receiver_endpoint)};
 
-    receive_from_gui_thread.join();
     receive_from_server_thread.join();
+    return 0;
+    receive_from_gui_thread.join();
 
     return 0;
 }
