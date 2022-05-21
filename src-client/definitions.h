@@ -16,6 +16,7 @@
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/array.hpp>
+#include <set>
 
 using bytes_t = char *;
 using socket_tcp = std::shared_ptr<boost::asio::ip::tcp::socket>;
@@ -175,9 +176,12 @@ public:
         }
     }
 
-    bool operator<(Uint<T> const &other) const
-    {
+    bool operator<(Uint<T> const &other) const {
         return value < other.value;
+    }
+
+    bool operator==(Uint<T> const &other) const {
+        return value == other.value;
     }
 };
 
@@ -264,6 +268,14 @@ public:
                 return false;
         }
     }
+
+    bool operator<(Position const &other) const {
+        return x < other.x || (x == other.x && y < other.y);
+    }
+
+    bool operator==(Position const &other) const {
+        return x == other.x && y == other.y;
+    }
 };
 
 class String: public Serializable {
@@ -317,6 +329,38 @@ public:
             Bytes list_content;
             for (auto &element: list) {
                 list_content += element->serialize();
+            }
+
+            return Uint32(length).serialize() + list_content;
+        }
+        else {
+            return {};
+        }
+    }
+};
+
+template<class T>
+requires isSerializable<T> || isExecutable<T> // TODO
+class Set: public Serializable {
+public:
+    std::set<T> set;
+
+    Set() = default;
+
+    explicit Set(Bytes &bytes) {
+        Uint32 length = Uint32(bytes);
+        for (size_t i = 0; i < length.value; i++) {
+            set.insert(T(bytes));
+        }
+    }
+
+    Bytes serialize() const override {
+        if constexpr (isSerializable<T>) {
+            auto length = static_cast<uint32_t>(set.size());
+
+            Bytes list_content;
+            for (auto &element: set) {
+                list_content += element.serialize();
             }
 
             return Uint32(length).serialize() + list_content;
@@ -416,12 +460,12 @@ public:
     List<Position> blocks;
     List<Bomb> bombs;
     std::map<BombId, std::shared_ptr<Bomb>> bombs_map;
-    List<Position> explosions;
+    Set<Position> explosions;
     Map<PlayerId, Score> scores;
     std::map<PlayerId, bool> death_this_round;
 
     void prepare_for_turn() {
-        explosions = List<Position>();
+        explosions = Set<Position>();
         death_this_round.clear();
         for (auto [player_id, _] : scores.map) {
             death_this_round[player_id] = false;
@@ -431,8 +475,22 @@ public:
     void after_turn() {
         auto it = scores.map.begin();
         while (it != scores.map.end()) {
+            if (death_this_round[it->first]) {
+                std::cout << "PlayerId: " << (int) it->first.value << " died.\n";
+            }
             it->second->value += death_this_round[it->first];
             it++;
+        }
+    }
+
+    void print() const {
+        std::cout << "GameState:\n explosions:\n";
+        for (auto &x : explosions.set) {
+            std::cout << "(" << x.x.value << ", " << x.y.value << ")\n";
+        }
+        std::cout << "scores:\n";
+        for (auto &[x, y] : scores.map) {
+            std::cout << "scores[" << (int) x.value << "] = " << y->value << "\n";
         }
     }
 };
@@ -501,7 +559,7 @@ public:
             }
         }
 
-        game_state.explosions.list.push_back(std::make_shared<Position>(bomb_position.x.value, bomb_position.y.value));
+        game_state.explosions.set.insert(Position(bomb_position.x.value, bomb_position.y.value));
         for (auto &block : blocks_destroyed.list) {
             if (bomb_position.x.value == block->x.value && bomb_position.y.value == block->y.value) {
                 return;
@@ -515,7 +573,7 @@ public:
             for (size_t r = 0; r < game_state.explosion_radius.value && cont
                 && current_position.is_next_proper(direction, game_state.size_x, game_state.size_y); r++) {
                 current_position = current_position.next(direction);
-                game_state.explosions.list.push_back(std::make_shared<Position>(current_position.x.value, current_position.y.value));
+                game_state.explosions.set.insert(Position(current_position.x.value, current_position.y.value));
                 for (auto &block : blocks_destroyed.list) {
                     if (current_position.x.value == block->x.value && current_position.y.value == block->y.value) {
                         cont = false;

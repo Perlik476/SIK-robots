@@ -108,7 +108,7 @@ public:
     }
 };
 
-class GameMessage : public DrawMessage {
+class GameMessage: public DrawMessage {
 private:
     char get_identifier() const override { return 1; }
     GameState game_state;
@@ -119,6 +119,7 @@ public:
     explicit GameMessage(GameState &game_state) : game_state(game_state) {}
 
     Bytes serialize() const override {
+        game_state.print();
         return Uint8(static_cast<uint8_t>(get_identifier())).serialize()
                + game_state.server_name.serialize()
                + game_state.size_x.serialize()
@@ -219,6 +220,7 @@ public:
             std::cout << (int) key.value << ": name: " << value->get_name().string << ", addr: " << value->get_address().string << "\n";
             game_state.scores.map[key] = std::make_shared<Score>(0);
         }
+        GameMessage(game_state).send(socket_gui, gui_endpoint); // TODO
     }
 };
 
