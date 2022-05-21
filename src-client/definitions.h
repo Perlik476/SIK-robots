@@ -366,7 +366,7 @@ public:
 template<isSerializable K, isSerializable T>
 class Map: public Serializable {
 public:
-    std::map<K, std::shared_ptr<T>> map;
+    std::map<K, T> map;
 
     Map() = default;
 
@@ -374,18 +374,18 @@ public:
         Uint32 length = Uint32(bytes);
         for (size_t i = 0; i < length.value; i++) {
             isSerializable auto key = K(bytes);
-            auto value = std::make_shared<T>(T(bytes));
+            isSerializable auto value = T(bytes);
             map[key] = value;
         }
     }
 
-    Bytes serialize() const override {
+    [[nodiscard]] Bytes serialize() const override {
         auto length = static_cast<uint32_t>(map.size());
 
         Bytes map_content;
         for (auto &[key, element] : map) {
             map_content += key.serialize();
-            map_content += element->serialize();
+            map_content += element.serialize();
         }
 
         return Uint32(length).serialize() + map_content;
@@ -397,7 +397,9 @@ private:
     String name;
     String address;
 public:
-    Player(const String &name, const String &address): name(name), address(address) {}
+    Player() = default;
+
+    explicit Player(const String &name, const String &address): name(name), address(address) {}
 
     explicit Player(Bytes &bytes) {
         name = String(bytes);
@@ -471,7 +473,7 @@ public:
             if (death_this_round[it->first]) {
                 std::cout << "PlayerId: " << (int) it->first.value << " died.\n";
             }
-            it->second->value += death_this_round[it->first];
+            it->second.value += death_this_round[it->first];
             it++;
         }
     }
@@ -483,7 +485,7 @@ public:
         }
         std::cout << "scores:\n";
         for (auto &[x, y] : scores.map) {
-            std::cout << "scores[" << (int) x.value << "] = " << y->value << "\n";
+            std::cout << "scores[" << (int) x.value << "] = " << y.value << "\n";
         }
     }
 };
@@ -598,7 +600,7 @@ public:
 
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         // TODO
-        game_state.player_positions.map[id] = std::make_shared<Position>(position.x.value, position.y.value);
+        game_state.player_positions.map[id] = Position(position.x.value, position.y.value);
         std::cout << "PlayerMoved: id: " << (int) id.value << ", x: " << position.x.value << ", y: " << position.y.value << "\n";
     }
 };

@@ -189,7 +189,7 @@ public:
     explicit AcceptedPlayerMessage(Bytes &bytes) : id(PlayerId(bytes)), player(Player(bytes)) {}
 
     void execute(GameState &game_state, SocketsInfo &sockets_info) override {
-        game_state.players.map[id] = std::make_shared<Player>(player);
+        game_state.players.map[id] = Player(player.get_name(), player.get_address());
         std::cout << "AcceptedPlayer: " << id.value << ": " << player.get_name().string << ", " << player.get_address().string << std::endl;
         LobbyMessage(game_state).send(sockets_info.socket_gui, sockets_info.gui_endpoint);
     }
@@ -206,8 +206,8 @@ public:
         std::cout << "GameStarted: \n";
         game_state.scores = PlayerScoresMap();
         for (auto &[key, value] : game_state.players.map) {
-            std::cout << (int) key.value << ": name: " << value->get_name().string << ", addr: " << value->get_address().string << "\n";
-            game_state.scores.map[key] = std::make_shared<Score>(0);
+            std::cout << (int) key.value << ": name: " << value.get_name().string << ", addr: " << value.get_address().string << "\n";
+            game_state.scores.map[key] = Score(0);
         }
         GameMessage(game_state).send(sockets_info.socket_gui, sockets_info.gui_endpoint); // TODO
     }
