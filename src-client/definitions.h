@@ -61,16 +61,7 @@ public:
     }
 
     bool is_end() {
-//        std::cout << index << "/" << size() << "\n";
         return index >= size();
-    }
-
-//    char *get_pointer() {
-//        return data() + index;
-//    }
-//
-    void reset_pointer() { // TODO
-        index = 0;
     }
 };
 
@@ -78,7 +69,7 @@ class BytesReceiver: public Bytes {
     socket_tcp socket;
 
     void listen() {
-        boost::array<char, 128> buf;
+        boost::array<char, 128> buf{};
         boost::system::error_code error;
         size_t size = socket->read_some(boost::asio::buffer(buf), error);
         for (size_t i = 0; i < size; i++) {
@@ -109,11 +100,14 @@ public:
     virtual ~Serializable() = default;
 };
 
-class SocketsInfo {
-public:
-    boost::asio::ip::udp::socket socket_gui;
+struct SocketsInfo {
+    socket_udp socket_gui;
+    boost::asio::ip::udp::endpoint gui_endpoint;
     socket_tcp socket_server;
 
+    SocketsInfo(socket_udp &socket_gui, boost::asio::ip::udp::endpoint &gui_endpoint,
+                socket_tcp socket_server) : socket_gui(socket_gui), gui_endpoint(gui_endpoint),
+                    socket_server(socket_server) {}
 };
 
 class Executable {
@@ -121,9 +115,7 @@ public:
     virtual ~Executable() = default;
 
     virtual void execute([[maybe_unused]] GameState &game_state,
-                         [[maybe_unused]] boost::asio::ip::udp::socket &socket_gui,
-                         [[maybe_unused]] socket_tcp &socket_server,
-                         [[maybe_unused]] boost::asio::ip::udp::endpoint &gui_endpoint) = 0;
+                         [[maybe_unused]] SocketsInfo &sockets_info) = 0;
 };
 
 template<class T>
@@ -506,9 +498,7 @@ public:
         position = Position(bytes);
     }
 
-    void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 socket_tcp &socket_server,
-                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
+    void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         auto bomb = std::make_shared<Bomb>(position, game_state.bomb_timer);
         game_state.bombs.list.push_back(bomb);
         game_state.bombs_map[id] = bomb;
@@ -529,9 +519,7 @@ public:
         blocks_destroyed = List<Position>(bytes);
     }
 
-    void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 socket_tcp &socket_server,
-                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
+    void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         std::cout << "BombExploded!\n";
         auto bomb = game_state.bombs_map[id];
         auto bomb_position = bomb->position;
@@ -608,9 +596,7 @@ public:
         position = Position(bytes);
     }
 
-    void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 socket_tcp &socket_server,
-                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
+    void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         // TODO
         game_state.player_positions.map[id] = std::make_shared<Position>(position.x.value, position.y.value);
         std::cout << "PlayerMoved: id: " << (int) id.value << ", x: " << position.x.value << ", y: " << position.y.value << "\n";
@@ -625,9 +611,7 @@ public:
         position = Position(bytes);
     }
 
-    void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 socket_tcp &socket_server,
-                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
+    void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         game_state.blocks.list.push_back(std::make_shared<Position>(position.x.value, position.y.value));
         std::cout << "BlockPlaced: x: " << position.x.value << ", y: " << position.y.value << "\n";
         // TODO
@@ -669,21 +653,19 @@ public:
         }
     }
 
-    void execute(GameState &game_state, boost::asio::ip::udp::socket &socket_gui,
-                 socket_tcp &socket_server,
-                 boost::asio::ip::udp::endpoint &gui_endpoint) override {
+    void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         switch(type) {
             case BombPlaced:
-                std::get<BombPlacedEvent>(event).execute(game_state, socket_gui, socket_server, gui_endpoint);
+                std::get<BombPlacedEvent>(event).execute(game_state, sockets_info);
                 break;
             case BombExploded:
-                std::get<BombExplodedEvent>(event).execute(game_state, socket_gui, socket_server, gui_endpoint);
+                std::get<BombExplodedEvent>(event).execute(game_state, sockets_info);
                 break;
             case PlayerMoved:
-                std::get<PlayerMovedEvent>(event).execute(game_state, socket_gui, socket_server, gui_endpoint);
+                std::get<PlayerMovedEvent>(event).execute(game_state, sockets_info);
                 break;
             case BlockPlaced:
-                std::get<BlockPlacedEvent>(event).execute(game_state, socket_gui, socket_server, gui_endpoint);
+                std::get<BlockPlacedEvent>(event).execute(game_state, sockets_info);
                 break;
             default:
                 // TODO

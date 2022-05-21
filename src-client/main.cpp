@@ -91,12 +91,13 @@ std::shared_ptr<Arguments> parse_arguments(int argc, char *argv[]) {
 }
 
 
-void receive_from_gui(Arguments &arguments, GameState &game_state, udp::socket &socket_gui, socket_tcp &socket_server,
+void receive_from_gui(Arguments &arguments, GameState &game_state, socket_udp &socket_gui, socket_tcp &socket_server,
                       udp::endpoint &gui_endpoint) {
+    SocketsInfo sockets_info(socket_gui, gui_endpoint, socket_server);
     for (;;) {
         boost::array<char, 128> recv_buf; // TODO
         udp::endpoint remote_endpoint;
-        size_t size = socket_gui.receive_from(boost::asio::buffer(recv_buf), remote_endpoint);
+        size_t size = socket_gui->receive_from(boost::asio::buffer(recv_buf), remote_endpoint);
 
         std::cout << "packet (size = " << size << "): ";
         for (size_t i = 0; i < size; i++) {
@@ -118,14 +119,15 @@ void receive_from_gui(Arguments &arguments, GameState &game_state, udp::socket &
             }
             else {
                 std::cout << "message sent." << std::endl;
-                message->execute(game_state, socket_gui, socket_server, gui_endpoint);
+                message->execute(game_state, sockets_info);
             }
         }
     }
 }
 
-void receive_from_server(Arguments &arguments, GameState &game_state, udp::socket &socket_gui,
+void receive_from_server(Arguments &arguments, GameState &game_state, socket_udp &socket_gui,
                          socket_tcp &socket_server, udp::endpoint &gui_endpoint) {
+    SocketsInfo sockets_info(socket_gui, gui_endpoint, socket_server);
     for (;;) {
         BytesReceiver bytes = BytesReceiver(socket_server);
         while (!bytes.is_end()) {
@@ -137,7 +139,7 @@ void receive_from_server(Arguments &arguments, GameState &game_state, udp::socke
                 return;
             }
             std::cout << "executing server message.\n";
-            message->execute(game_state, socket_gui, socket_server, gui_endpoint);
+            message->execute(game_state, sockets_info);
         }
     }
 }
@@ -157,19 +159,10 @@ int main(int argc, char *argv[]) {
 
     udp::resolver resolver(io_context);
     udp::endpoint receiver_endpoint = *resolver.resolve(arguments->gui_address_pure, arguments->gui_port).begin();
-    udp::socket socket_gui_send(io_context);
-    socket_gui_send.open(receiver_endpoint.protocol());
+    auto socket_gui_send = std::make_shared<udp::socket>(io_context);
+    socket_gui_send->open(receiver_endpoint.protocol());
 
-//    auto lobby_message = LobbyMessage(game_state);
-//    lobby_message.send(socket_gui_send, receiver_endpoint);
-//
-//    sleep(2);
-//
-//    auto game_message = GameMessage(game_state);
-//
-//    game_message.send(socket_gui_send, receiver_endpoint);
-
-    udp::socket socket_gui_receive(io_context, udp::endpoint(udp::v6(), arguments->port));
+    auto socket_gui_receive = std::make_shared<udp::socket>(io_context, udp::endpoint(udp::v6(), arguments->port));
 
     tcp::resolver resolver_tcp(io_context);
     tcp::endpoint endpoints = *resolver_tcp.resolve(arguments->server_address_pure, arguments->server_port);

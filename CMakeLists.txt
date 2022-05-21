@@ -18,6 +18,9 @@ if (${_host_name} STREQUAL "students")
     message ("Before running your program run: export LD_LIBRARY_PATH=/opt/gcc-11.2/lib64")
     set (LD_LIBRARY_PATH "/opt/gcc-11.2/lib64")
     set (CMAKE_CXX_COMPILER "/opt/gcc-11.2/bin/g++-11.2")
+    SET(CMAKE_EXE_LINKER_FLAGS
+            "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,/opt/gcc-11.2/lib64")
+
 else ()
     message ("Setting LOCAL gcc11.2 path")
     message ("Before running your program run: export LD_LIBRARY_PATH=/home/matt/.GCC-11.2/lib64")
@@ -42,10 +45,10 @@ add_executable (${CLIENT_EXECUTABLE}
         )
 
 # Add executable server
-set (SERVER_EXECUTABLE ${PROJECT_NAME}-server)
-add_executable (${SERVER_EXECUTABLE}
-        src-server/main.cpp
-        )
+#set (SERVER_EXECUTABLE ${PROJECT_NAME}-server)
+#add_executable (${SERVER_EXECUTABLE}
+#        src-server/main.cpp
+#        )
 
 # Setup BOOST library
 find_package(Boost 1.71 COMPONENTS program_options REQUIRED)
@@ -56,4 +59,4 @@ if(NOT Boost_FOUND)
 endif()
 
 target_link_libraries(${CLIENT_EXECUTABLE} LINK_PUBLIC ${Boost_LIBRARIES})
-target_link_libraries(${SERVER_EXECUTABLE} LINK_PUBLIC ${Boost_LIBRARIES})
+#target_link_libraries(${SERVER_EXECUTABLE} LINK_PUBLIC ${Boost_LIBRARIES})
