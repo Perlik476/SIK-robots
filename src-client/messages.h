@@ -175,9 +175,9 @@ public:
         game_state.game_length = game_length;
         game_state.explosion_radius = explosion_radius;
         game_state.bomb_timer = bomb_timer;
-        std::cout << "Hello: " << server_name.string << ": " << (int) players_count.value << ", " << size_x.value << "x" <<
-            size_y.value << ", " << game_length.value << ", " << explosion_radius.value << ", " << bomb_timer.value << std::endl;
-        LobbyMessage(game_state).send(sockets_info.socket_gui, sockets_info.gui_endpoint);
+        std::cout << "Hello: " << server_name.get_string() << ": " << (int) players_count.get_value() << ", " << size_x.get_value() << "x" <<
+            size_y.get_value() << ", " << game_length.get_value() << ", " << explosion_radius.get_value() << ", " << bomb_timer.get_value() << std::endl;
+        LobbyMessage(game_state).send(sockets_info.gui_socket, sockets_info.gui_endpoint);
     }
 };
 
@@ -189,9 +189,9 @@ public:
     explicit AcceptedPlayerMessage(Bytes &bytes) : id(PlayerId(bytes)), player(Player(bytes)) {}
 
     void execute(GameState &game_state, SocketsInfo &sockets_info) override {
-        game_state.players.map[id] = Player(player.get_name(), player.get_address());
-        std::cout << "AcceptedPlayer: " << id.value << ": " << player.get_name().string << ", " << player.get_address().string << std::endl;
-        LobbyMessage(game_state).send(sockets_info.socket_gui, sockets_info.gui_endpoint);
+        game_state.players.get_map()[id] = Player(player.get_name(), player.get_address());
+        std::cout << "AcceptedPlayer: " << id.get_value() << ": " << player.get_name().get_string() << ", " << player.get_address().get_string() << std::endl;
+        LobbyMessage(game_state).send(sockets_info.gui_socket, sockets_info.gui_endpoint);
     }
 };
 
@@ -205,11 +205,11 @@ public:
         game_state.players = players;
         std::cout << "GameStarted: \n";
         game_state.scores = PlayerScoresMap();
-        for (auto &[key, value] : game_state.players.map) {
-            std::cout << (int) key.value << ": name: " << value.get_name().string << ", addr: " << value.get_address().string << "\n";
-            game_state.scores.map[key] = Score(0);
+        for (auto &[key, value] : game_state.players.get_map()) {
+            std::cout << (int) key.get_value() << ": name: " << value.get_name().get_string() << ", addr: " << value.get_address().get_string() << "\n";
+            game_state.scores.get_map()[key] = Score(0);
         }
-        GameMessage(game_state).send(sockets_info.socket_gui, sockets_info.gui_endpoint); // TODO
+        GameMessage(game_state).send(sockets_info.gui_socket, sockets_info.gui_endpoint); // TODO
     }
 };
 
@@ -222,18 +222,18 @@ public:
 
     void execute(GameState &game_state, SocketsInfo &sockets_info) override {
         // TODO
-        std::cout << "TurnMessage:\nturn: " << turn.value << "\n";
-        std::cout << "list length: " << events.list.size() << "\n";
+        std::cout << "TurnMessage:\nturn: " << turn.get_value() << "\n";
+        std::cout << "list length: " << events.get_list().size() << "\n";
         game_state.prepare_for_turn();
 
-        game_state.turn = turn.value;
-        for (auto &event : events.list) {
+        game_state.turn = turn.get_value();
+        for (auto &event : events.get_list()) {
             event.execute(game_state, sockets_info);
         }
 
         game_state.after_turn();
 
-        GameMessage(game_state).send(sockets_info.socket_gui, sockets_info.gui_endpoint);
+        GameMessage(game_state).send(sockets_info.gui_socket, sockets_info.gui_endpoint);
     }
 };
 
@@ -246,7 +246,7 @@ public:
     void execute(GameState &game_state, SocketsInfo &sockets_info) override {
         game_state.scores = scores;
         game_state.is_joined = false;
-        GameMessage(game_state).send(sockets_info.socket_gui, sockets_info.gui_endpoint);
+        GameMessage(game_state).send(sockets_info.gui_socket, sockets_info.gui_endpoint);
         // TODO
     }
 };
@@ -266,8 +266,8 @@ public:
 
     void execute(GameState &game_state, SocketsInfo &sockets_info) override {
         std::cout << "PlaceBomb sent." << std::endl;
-        PlaceBombMessage().send(sockets_info.socket_server);
-//        game_state.place_bomb(*game_state.player_positions.map[game_state.my_id]);
+        PlaceBombMessage().send(sockets_info.server_socket);
+//        game_state.place_bomb(*game_state.player_positions.get_map()[game_state.my_id]);
     }
 };
 
@@ -277,8 +277,8 @@ public:
 
     void execute(GameState &game_state, SocketsInfo &sockets_info) override {
         std::cout << "PlaceBlock sent." << std::endl;
-        PlaceBlockMessage().send(sockets_info.socket_server);
-//        game_state.place_block(*game_state.player_positions.map[game_state.my_id]);
+        PlaceBlockMessage().send(sockets_info.server_socket);
+//        game_state.place_block(*game_state.player_positions.get_map()[game_state.my_id]);
     }
 };
 
@@ -289,8 +289,8 @@ public:
 
     void execute(GameState &game_state, SocketsInfo &sockets_info) override {
         std::cout << "Move sent:" << (int) direction << std::endl;
-        MoveMessage(direction).send(sockets_info.socket_server);
-//        game_state.try_move(direction, game_state.player_positions.map[game_state.my_id]);
+        MoveMessage(direction).send(sockets_info.server_socket);
+//        game_state.try_move(direction, game_state.player_positions.get_map()[game_state.my_id]);
     }
 };
 

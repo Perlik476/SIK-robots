@@ -91,13 +91,11 @@ std::shared_ptr<Arguments> parse_arguments(int argc, char *argv[]) {
 }
 
 
-void receive_from_gui(Arguments &arguments, GameState &game_state, socket_udp &socket_gui, socket_tcp &socket_server,
-                      udp::endpoint &gui_endpoint) {
-    SocketsInfo sockets_info(socket_gui, gui_endpoint, socket_server);
+void receive_from_gui(Arguments &arguments, GameState &game_state, SocketsInfo &sockets_info) {
     for (;;) {
-        boost::array<char, 128> recv_buf; // TODO
+        boost::array<char, 3> recv_buf{}; // TODO
         udp::endpoint remote_endpoint;
-        size_t size = socket_gui->receive_from(boost::asio::buffer(recv_buf), remote_endpoint);
+        size_t size = sockets_info.gui_socket->receive_from(boost::asio::buffer(recv_buf), remote_endpoint);
 
         std::cout << "packet (size = " << size << "): ";
         for (size_t i = 0; i < size; i++) {
@@ -113,7 +111,7 @@ void receive_from_gui(Arguments &arguments, GameState &game_state, socket_udp &s
         auto message = get_gui_message(bytes);
         if (message != nullptr && bytes.is_end()) {
             if (!game_state.is_joined) {
-                JoinMessage(arguments.player_name).send(socket_server);
+                JoinMessage(arguments.player_name).send(sockets_info.server_socket);
                 std::cout << "Join sent." << std::endl;
                 game_state.is_joined = true;
             }
@@ -125,16 +123,14 @@ void receive_from_gui(Arguments &arguments, GameState &game_state, socket_udp &s
     }
 }
 
-void receive_from_server(Arguments &arguments, GameState &game_state, socket_udp &socket_gui,
-                         socket_tcp &socket_server, udp::endpoint &gui_endpoint) {
-    SocketsInfo sockets_info(socket_gui, gui_endpoint, socket_server);
+void receive_from_server(Arguments &arguments, GameState &game_state, SocketsInfo sockets_info) {
     for (;;) {
-        BytesReceiver bytes = BytesReceiver(socket_server);
+        BytesReceiver bytes = BytesReceiver(sockets_info.server_socket);
         while (!bytes.is_end()) {
             auto message = get_server_message(bytes);
             if (message == nullptr) {
                 std::cout << "wrong message received from server.\n";
-                socket_server->close();
+                sockets_info.server_socket->close();
                 game_state.is_joined = false; // TODO
                 return;
             }
@@ -158,9 +154,9 @@ int main(int argc, char *argv[]) {
     auto game_state = GameState();
 
     udp::resolver resolver(io_context);
-    udp::endpoint receiver_endpoint = *resolver.resolve(arguments->gui_address_pure, arguments->gui_port).begin();
+    udp::endpoint gui_endpoint = *resolver.resolve(arguments->gui_address_pure, arguments->gui_port).begin();
     auto socket_gui_send = std::make_shared<udp::socket>(io_context);
-    socket_gui_send->open(receiver_endpoint.protocol());
+    socket_gui_send->open(gui_endpoint.protocol());
 
     auto socket_gui_receive = std::make_shared<udp::socket>(io_context, udp::endpoint(udp::v6(), arguments->port));
 
@@ -172,11 +168,13 @@ int main(int argc, char *argv[]) {
     tcp::no_delay option(true);
     socket_server->set_option(option);
 
-    std::thread receive_from_gui_thread{receive_from_gui, std::ref(*arguments), std::ref(game_state), std::ref(socket_gui_receive),
-                                        std::ref(socket_server), std::ref(receiver_endpoint)};
+    SocketsInfo sockets_info_gui(socket_gui_receive, gui_endpoint, socket_server);
+    std::thread receive_from_gui_thread{receive_from_gui, std::ref(*arguments), std::ref(game_state),
+                                        std::ref(sockets_info_gui)};
 
+    SocketsInfo sockets_info_server(socket_gui_send, gui_endpoint, socket_server);
     std::thread receive_from_server_thread{receive_from_server, std::ref(*arguments), std::ref(game_state),
-                                           std::ref(socket_gui_receive), std::ref(socket_server), std::ref(receiver_endpoint)};
+                                           std::ref(sockets_info_server)};
 
     receive_from_server_thread.join();
     return 0;

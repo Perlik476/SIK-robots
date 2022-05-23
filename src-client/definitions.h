@@ -101,13 +101,13 @@ public:
 };
 
 struct SocketsInfo {
-    socket_udp socket_gui;
+    socket_udp gui_socket;
     boost::asio::ip::udp::endpoint gui_endpoint;
-    socket_tcp socket_server;
+    socket_tcp server_socket;
 
-    SocketsInfo(socket_udp &socket_gui, boost::asio::ip::udp::endpoint &gui_endpoint,
-                socket_tcp socket_server) : socket_gui(socket_gui), gui_endpoint(gui_endpoint),
-                    socket_server(socket_server) {}
+    SocketsInfo(socket_udp &gui_socket, boost::asio::ip::udp::endpoint &gui_endpoint,
+                socket_tcp &server_socket) : gui_socket(gui_socket), gui_endpoint(gui_endpoint),
+                                            server_socket(server_socket) {}
 };
 
 class Executable {
@@ -129,9 +129,8 @@ concept isUint = std::is_integral_v<T>; // TODO
 
 template<isUint T>
 class Uint: public Serializable {
-public:
     T value;
-
+public:
     Uint() = default;
 
     constexpr Uint(T value): value(value) {}
@@ -169,11 +168,28 @@ public:
     }
 
     bool operator<(Uint<T> const &other) const {
-        return value < other.value;
+        return value < other.get_value();
     }
 
     bool operator==(Uint<T> const &other) const {
-        return value == other.value;
+        return value == other.get_value();
+    }
+
+    Uint<T> &operator+=(Uint<T> const &other) {
+        value += other.get_value();
+        return *this;
+    }
+
+    Uint<T> operator+(Uint<T> const &other) const {
+        return *this += other;
+    }
+
+    auto get_value() {
+        return value;
+    }
+
+    auto get_value() const {
+        return value;
     }
 };
 
@@ -216,19 +232,19 @@ public:
     }
 
     Position up() {
-        return Position(x.value, y.value + 1);
+        return Position(x.get_value(), y.get_value() + 1);
     }
 
     Position right() {
-        return Position(x.value + 1, y.value);
+        return Position(x.get_value() + 1, y.get_value());
     }
 
     Position down() {
-        return Position(x.value, y.value - 1);
+        return Position(x.get_value(), y.get_value() - 1);
     }
 
     Position left() {
-        return Position(x.value - 1, y.value);
+        return Position(x.get_value() - 1, y.get_value());
     }
 
     Position next(Direction &direction) {
@@ -249,13 +265,13 @@ public:
     bool is_next_proper(Direction &direction, Uint16 size_x, Uint16 size_y) {
         switch(direction) {
             case Direction::Up:
-                return y.value < size_y.value - 1;
+                return y.get_value() < size_y.get_value() - 1;
             case Direction::Right:
-                return x.value < size_x.value - 1;
+                return x.get_value() < size_x.get_value() - 1;
             case Direction::Down:
-                return y.value > 0;
+                return y.get_value() > 0;
             case Direction::Left:
-                return x.value > 0;
+                return x.get_value() > 0;
             default:
                 return false;
         }
@@ -271,24 +287,31 @@ public:
 };
 
 class String: public Serializable {
-public:
     std::string string;
+public:
+    auto &get_string() {
+        return string;
+    }
+
+    auto &get_string() const {
+        return string;
+    }
 
     String() = default;
 
-    String(const String &other) : string(other.string) {}
-
     explicit String(const std::string &string) : string(string) {}
+
+    String(const String &string) : string(string.get_string()) {}
 
     explicit String(Bytes &bytes) {
         Uint8 length = Uint8(bytes);
-        for (size_t i = 0; i < length.value; i++) {
+        for (size_t i = 0; i < length.get_value(); i++) {
             string += bytes.get_next_byte();
         }
     }
 
     String &operator= (const String &other) {
-        this->string = other.string;
+        this->string = other.get_string();
         return *this;
     }
 
@@ -302,14 +325,14 @@ public:
 template<class T>
 requires isSerializable<T> || isExecutable<T> // TODO
 class List: public Serializable {
-public:
     std::vector<T> list;
+public:
 
     List() = default;
 
     explicit List(Bytes &bytes) {
         Uint32 length = Uint32(bytes);
-        for (size_t i = 0; i < length.value; i++) {
+        for (size_t i = 0; i < length.get_value(); i++) {
             list.push_back(T(bytes));
         }
     }
@@ -329,19 +352,35 @@ public:
             return {};
         }
     }
+
+    auto &get_list() {
+        return list;
+    }
+
+    auto &get_list() const {
+        return list;
+    }
+
+    auto begin() {
+        return list.begin();
+    }
+
+    auto end() {
+        return list.end();
+    }
 };
 
 template<class T>
 requires isSerializable<T> || isExecutable<T> // TODO
 class Set: public Serializable {
-public:
     std::set<T> set;
 
+public:
     Set() = default;
 
     explicit Set(Bytes &bytes) {
         Uint32 length = Uint32(bytes);
-        for (size_t i = 0; i < length.value; i++) {
+        for (size_t i = 0; i < length.get_value(); i++) {
             set.insert(T(bytes));
         }
     }
@@ -361,18 +400,25 @@ public:
             return {};
         }
     }
+
+    std::set<T> &get_set() {
+        return set;
+    }
+
+    auto &get_set() const {
+        return set;
+    }
 };
 
 template<isSerializable K, isSerializable T>
 class Map: public Serializable {
-public:
     std::map<K, T> map;
-
+public:
     Map() = default;
 
     explicit Map(Bytes &bytes) {
         Uint32 length = Uint32(bytes);
-        for (size_t i = 0; i < length.value; i++) {
+        for (size_t i = 0; i < length.get_value(); i++) {
             isSerializable auto key = K(bytes);
             isSerializable auto value = T(bytes);
             map[key] = value;
@@ -390,6 +436,14 @@ public:
 
         return Uint32(length).serialize() + map_content;
     };
+
+    auto &get_map() {
+        return map;
+    }
+
+    auto &get_map() const {
+        return map;
+    }
 };
 
 class Player: public Serializable {
@@ -468,30 +522,30 @@ public:
     void prepare_for_turn() {
         explosions = Set<Position>();
         death_this_round.clear();
-        for (auto [player_id, _] : scores.map) {
+        for (auto [player_id, _] : scores.get_map()) {
             death_this_round[player_id] = false;
         }
     }
 
     void after_turn() {
-        auto it = scores.map.begin();
-        while (it != scores.map.end()) {
+        auto it = scores.get_map().begin();
+        while (it != scores.get_map().end()) {
             if (death_this_round[it->first]) {
-                std::cout << "PlayerId: " << (int) it->first.value << " died.\n";
+                std::cout << "PlayerId: " << (int) it->first.get_value() << " died.\n";
             }
-            it->second.value += death_this_round[it->first];
+            it->second += death_this_round[it->first];
             it++;
         }
     }
 
     void print() const {
         std::cout << "GameState:\n explosions:\n";
-        for (auto &x : explosions.set) {
-            std::cout << "(" << x.x.value << ", " << x.y.value << ")\n";
+        for (auto &x : explosions.get_set()) {
+            std::cout << "(" << x.x.get_value() << ", " << x.y.get_value() << ")\n";
         }
         std::cout << "scores:\n";
-        for (auto &[x, y] : scores.map) {
-            std::cout << "scores[" << (int) x.value << "] = " << y.value << "\n";
+        for (auto &[x, y] : scores.get_map()) {
+            std::cout << "scores[" << (int) x.get_value() << "] = " << y.get_value() << "\n";
         }
     }
 };
@@ -508,10 +562,10 @@ public:
 
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         auto bomb = Bomb(position, game_state.bomb_timer);
-        game_state.bombs.list.push_back(bomb);
+        game_state.bombs.get_list().push_back(bomb);
         game_state.bombs_map[id] = bomb;
 //      TODO
-        std::cout << "BombPlaced\nid: " << id.value << ", x: " << position.x.value << ", y: " << position.y.value << "\n";
+        std::cout << "BombPlaced\nid: " << id.get_value() << ", x: " << position.x.get_value() << ", y: " << position.y.get_value() << "\n";
     }
 };
 
@@ -529,36 +583,43 @@ public:
 
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         std::cout << "BombExploded!\n";
-        auto bomb = game_state.bombs_map[id];
-        auto bomb_position = bomb.position;
+        auto bomb_exploded = game_state.bombs_map[id];
+        auto bomb_position = bomb_exploded.position;
 
-        auto it_bombs = game_state.bombs.list.begin();
-        while (it_bombs != game_state.bombs.list.end()) {
-            if (*it_bombs == bomb) {
-                game_state.bombs.list.erase(it_bombs);
+//        for (auto &bomb : game_state.bombs) {
+//            if (bomb == bomb_exploded) {
+//                game_state.bombs
+//            }
+//            // TODO
+//        }
+
+        auto it_bombs = game_state.bombs.get_list().begin();
+        while (it_bombs != game_state.bombs.get_list().end()) {
+            if (*it_bombs == bomb_exploded) {
+                game_state.bombs.get_list().erase(it_bombs);
                 break;
             }
             it_bombs++;
         }
 
-        for (auto &player_id : robots_destroyed.list) {
+        for (auto &player_id : robots_destroyed.get_list()) {
             game_state.death_this_round[player_id] = true;
         }
 
-        for (auto &position : blocks_destroyed.list) {
-            auto it_blocks = game_state.blocks.list.begin();
-            while (it_blocks != game_state.blocks.list.end()) {
-                if (it_blocks->x.value == position.x.value && it_blocks->y.value == position.y.value) {
-                    game_state.blocks.list.erase(it_blocks);
+        for (auto &position : blocks_destroyed.get_list()) {
+            auto it_blocks = game_state.blocks.get_list().begin();
+            while (it_blocks != game_state.blocks.get_list().end()) {
+                if (it_blocks->x.get_value() == position.x.get_value() && it_blocks->y.get_value() == position.y.get_value()) {
+                    game_state.blocks.get_list().erase(it_blocks);
                     break;
                 }
                 it_blocks++;
             }
         }
 
-        game_state.explosions.set.insert(Position(bomb_position.x.value, bomb_position.y.value));
-        for (auto &block : blocks_destroyed.list) {
-            if (bomb_position.x.value == block.x.value && bomb_position.y.value == block.y.value) {
+        game_state.explosions.get_set().insert(Position(bomb_position.x.get_value(), bomb_position.y.get_value()));
+        for (auto &block : blocks_destroyed.get_list()) {
+            if (bomb_position.x.get_value() == block.x.get_value() && bomb_position.y.get_value() == block.y.get_value()) {
                 return;
             }
         }
@@ -567,29 +628,18 @@ public:
             auto direction = static_cast<Direction>(i);
             auto current_position = bomb_position;
             bool cont = true;
-            for (size_t r = 0; r < game_state.explosion_radius.value && cont
+            for (size_t r = 0; r < game_state.explosion_radius.get_value() && cont
                 && current_position.is_next_proper(direction, game_state.size_x, game_state.size_y); r++) {
                 current_position = current_position.next(direction);
-                game_state.explosions.set.insert(Position(current_position.x.value, current_position.y.value));
-                for (auto &block : blocks_destroyed.list) {
-                    if (current_position.x.value == block.x.value && current_position.y.value == block.y.value) {
+                game_state.explosions.get_set().insert(Position(current_position.x.get_value(), current_position.y.get_value()));
+                for (auto &block : blocks_destroyed.get_list()) {
+                    if (current_position.x.get_value() == block.x.get_value() && current_position.y.get_value() == block.y.get_value()) {
                         cont = false;
                         break;
                     }
                 }
             }
         }
-//        remove(game_state.bombs.list.begin(), game_state.bombs.list.end(), bomb);
-//        for (auto &player_id : robots_destroyed.list) {
-//            game_state.scores()
-//        }
-//        for (auto &position : blocks_destroyed.list) {
-//            remove(game_state.blocks.list.begin(), game_state.blocks.list.end(), position);
-//        }
-//        for (const auto &b : game_state.bombs.list) {
-//            if (b == bomb) {
-//            }
-//        }
         // TODO
     }
 };
@@ -606,8 +656,8 @@ public:
 
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         // TODO
-        game_state.player_positions.map[id] = Position(position.x.value, position.y.value);
-        std::cout << "PlayerMoved: id: " << (int) id.value << ", x: " << position.x.value << ", y: " << position.y.value << "\n";
+        game_state.player_positions.get_map()[id] = Position(position.x.get_value(), position.y.get_value());
+        std::cout << "PlayerMoved: id: " << (int) id.get_value() << ", x: " << position.x.get_value() << ", y: " << position.y.get_value() << "\n";
     }
 };
 
@@ -620,8 +670,8 @@ public:
     }
 
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
-        game_state.blocks.list.push_back(position);
-        std::cout << "BlockPlaced: x: " << position.x.value << ", y: " << position.y.value << "\n";
+        game_state.blocks.get_list().push_back(position);
+        std::cout << "BlockPlaced: x: " << position.x.get_value() << ", y: " << position.y.get_value() << "\n";
         // TODO
     }
 };
@@ -631,7 +681,7 @@ class Event: public Executable { // TODO
         BombPlaced,
         BombExploded,
         PlayerMoved,
-        BlockPlaced
+        BlockPlaced,
     } type;
 
     using event_t = std::variant<BombPlacedEvent, BombExplodedEvent,
