@@ -211,8 +211,15 @@ enum Direction: char {
 };
 
 class Position: public Serializable {
-public:
     Uint16 x, y;
+public:
+    auto &get_x() { return x; }
+
+    auto &get_y() { return y; }
+
+    auto &get_x() const { return x; }
+
+    auto &get_y() const { return y; }
 
     Position() = default;
 
@@ -220,7 +227,7 @@ public:
 
     Position(Uint16 &x, Uint16 &y) : x(x), y(y) {}
 
-//    Position(Position &position) : x(position.x), y(position.y) {}
+//    Position(Position &position) : x(position.get_x()), y(position.get_y()) {}
 
     explicit Position(Bytes &bytes) {
         x = Uint16(bytes);
@@ -231,23 +238,23 @@ public:
         return x.serialize() + y.serialize();
     }
 
-    Position up() {
+    Position up() const {
         return Position(x.get_value(), y.get_value() + 1);
     }
 
-    Position right() {
+    Position right() const {
         return Position(x.get_value() + 1, y.get_value());
     }
 
-    Position down() {
+    Position down() const {
         return Position(x.get_value(), y.get_value() - 1);
     }
 
-    Position left() {
+    Position left() const {
         return Position(x.get_value() - 1, y.get_value());
     }
 
-    Position next(Direction &direction) {
+    Position next(Direction &direction) const {
         switch(direction) {
             case Direction::Up:
                 return up();
@@ -278,11 +285,11 @@ public:
     }
 
     bool operator<(Position const &other) const {
-        return x < other.x || (x == other.x && y < other.y);
+        return x < other.get_x() || (x == other.get_x() && y < other.get_y());
     }
 
     bool operator==(Position const &other) const {
-        return x == other.x && y == other.y;
+        return x == other.get_x() && y == other.get_y();
     }
 };
 
@@ -541,7 +548,7 @@ public:
     void print() const {
         std::cout << "GameState:\n explosions:\n";
         for (auto &x : explosions.get_set()) {
-            std::cout << "(" << x.x.get_value() << ", " << x.y.get_value() << ")\n";
+            std::cout << "(" << x.get_x().get_value() << ", " << x.get_y().get_value() << ")\n";
         }
         std::cout << "scores:\n";
         for (auto &[x, y] : scores.get_map()) {
@@ -565,7 +572,7 @@ public:
         game_state.bombs.get_list().push_back(bomb);
         game_state.bombs_map[id] = bomb;
 //      TODO
-        std::cout << "BombPlaced\nid: " << id.get_value() << ", x: " << position.x.get_value() << ", y: " << position.y.get_value() << "\n";
+        std::cout << "BombPlaced\nid: " << id.get_value() << ", x: " << position.get_x().get_value() << ", y: " << position.get_y().get_value() << "\n";
     }
 };
 
@@ -586,13 +593,6 @@ public:
         auto bomb_exploded = game_state.bombs_map[id];
         auto bomb_position = bomb_exploded.position;
 
-//        for (auto &bomb : game_state.bombs) {
-//            if (bomb == bomb_exploded) {
-//                game_state.bombs
-//            }
-//            // TODO
-//        }
-
         auto it_bombs = game_state.bombs.get_list().begin();
         while (it_bombs != game_state.bombs.get_list().end()) {
             if (*it_bombs == bomb_exploded) {
@@ -609,7 +609,7 @@ public:
         for (auto &position : blocks_destroyed.get_list()) {
             auto it_blocks = game_state.blocks.get_list().begin();
             while (it_blocks != game_state.blocks.get_list().end()) {
-                if (it_blocks->x.get_value() == position.x.get_value() && it_blocks->y.get_value() == position.y.get_value()) {
+                if (*it_blocks == position) {
                     game_state.blocks.get_list().erase(it_blocks);
                     break;
                 }
@@ -617,9 +617,9 @@ public:
             }
         }
 
-        game_state.explosions.get_set().insert(Position(bomb_position.x.get_value(), bomb_position.y.get_value()));
+        game_state.explosions.get_set().insert(bomb_position);
         for (auto &block : blocks_destroyed.get_list()) {
-            if (bomb_position.x.get_value() == block.x.get_value() && bomb_position.y.get_value() == block.y.get_value()) {
+            if (bomb_position == block) {
                 return;
             }
         }
@@ -630,10 +630,12 @@ public:
             bool cont = true;
             for (size_t r = 0; r < game_state.explosion_radius.get_value() && cont
                 && current_position.is_next_proper(direction, game_state.size_x, game_state.size_y); r++) {
+
                 current_position = current_position.next(direction);
-                game_state.explosions.get_set().insert(Position(current_position.x.get_value(), current_position.y.get_value()));
+                game_state.explosions.get_set().insert(current_position);
+
                 for (auto &block : blocks_destroyed.get_list()) {
-                    if (current_position.x.get_value() == block.x.get_value() && current_position.y.get_value() == block.y.get_value()) {
+                    if (current_position == block) {
                         cont = false;
                         break;
                     }
@@ -656,8 +658,8 @@ public:
 
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         // TODO
-        game_state.player_positions.get_map()[id] = Position(position.x.get_value(), position.y.get_value());
-        std::cout << "PlayerMoved: id: " << (int) id.get_value() << ", x: " << position.x.get_value() << ", y: " << position.y.get_value() << "\n";
+        game_state.player_positions.get_map()[id] = Position(position.get_x().get_value(), position.get_y().get_value());
+        std::cout << "PlayerMoved: id: " << (int) id.get_value() << ", x: " << position.get_x().get_value() << ", y: " << position.get_y().get_value() << "\n";
     }
 };
 
@@ -671,7 +673,7 @@ public:
 
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         game_state.blocks.get_list().push_back(position);
-        std::cout << "BlockPlaced: x: " << position.x.get_value() << ", y: " << position.y.get_value() << "\n";
+        std::cout << "BlockPlaced: x: " << position.get_x().get_value() << ", y: " << position.get_y().get_value() << "\n";
         // TODO
     }
 };

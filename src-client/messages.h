@@ -243,7 +243,7 @@ class GameEndedMessage: public ServerMessage {
 public:
     explicit GameEndedMessage(Bytes &bytes) : scores(PlayerScoresMap(bytes)) {}
 
-    void execute(GameState &game_state, SocketsInfo &sockets_info) override {
+    void execute([[maybe_unused]] GameState &game_state, SocketsInfo &sockets_info) override {
         game_state.scores = scores;
         game_state.is_joined = false;
         GameMessage(game_state).send(sockets_info.gui_socket, sockets_info.gui_endpoint);
@@ -264,7 +264,7 @@ class PlaceBombGuiMessage: public GuiMessage {
 public:
     PlaceBombGuiMessage() = default;
 
-    void execute(GameState &game_state, SocketsInfo &sockets_info) override {
+    void execute([[maybe_unused]] GameState &game_state, SocketsInfo &sockets_info) override {
         std::cout << "PlaceBomb sent." << std::endl;
         PlaceBombMessage().send(sockets_info.server_socket);
 //        game_state.place_bomb(*game_state.player_positions.get_map()[game_state.my_id]);
@@ -275,7 +275,7 @@ class PlaceBlockGuiMessage: public GuiMessage {
 public:
     PlaceBlockGuiMessage() = default;
 
-    void execute(GameState &game_state, SocketsInfo &sockets_info) override {
+    void execute([[maybe_unused]] GameState &game_state, SocketsInfo &sockets_info) override {
         std::cout << "PlaceBlock sent." << std::endl;
         PlaceBlockMessage().send(sockets_info.server_socket);
 //        game_state.place_block(*game_state.player_positions.get_map()[game_state.my_id]);
@@ -287,7 +287,7 @@ class MoveGuiMessage: public GuiMessage {
 public:
     explicit MoveGuiMessage(Bytes &bytes) : direction((Direction) bytes.get_next_byte()) {} // TODO
 
-    void execute(GameState &game_state, SocketsInfo &sockets_info) override {
+    void execute([[maybe_unused]] GameState &game_state, SocketsInfo &sockets_info) override {
         std::cout << "Move sent:" << (int) direction << std::endl;
         MoveMessage(direction).send(sockets_info.server_socket);
 //        game_state.try_move(direction, game_state.player_positions.get_map()[game_state.my_id]);
