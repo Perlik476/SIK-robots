@@ -2,7 +2,6 @@
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 #include <utility>
-#include <unistd.h>
 #include <cstdint>
 #include <cstring>
 #include <ranges>
@@ -154,30 +153,59 @@ int main(int argc, char *argv[]) {
     auto game_state = GameState();
 
     udp::resolver resolver(io_context);
-    udp::endpoint gui_endpoint = *resolver.resolve(arguments->gui_address_pure, arguments->gui_port).begin();
-    auto socket_gui_send = std::make_shared<udp::socket>(io_context);
-    socket_gui_send->open(gui_endpoint.protocol());
-
-    auto socket_gui_receive = std::make_shared<udp::socket>(io_context, udp::endpoint(udp::v6(), arguments->port));
+    udp::endpoint gui_endpoint;
+    try {
+        gui_endpoint = *resolver.resolve(arguments->gui_address_pure, arguments->gui_port).begin();
+    }
+    catch (std::exception &exception) {
+        std::cerr << "Resolving GUI address failed." << std::endl;
+        std::cerr << exception.what() << std::endl;
+        return 1;
+    }
+    std::shared_ptr<udp::socket> gui_socket;
+    try {
+        gui_socket = std::make_shared<udp::socket>(io_context, udp::endpoint(udp::v6(), arguments->port));
+    }
+    catch (std::exception &exception) {
+        std::cerr << "Socket for GUI communications could not be opened." << std::endl;
+        std::cerr << exception.what() << std::endl;
+        return 1;
+    }
 
     tcp::resolver resolver_tcp(io_context);
-    tcp::endpoint endpoints = *resolver_tcp.resolve(arguments->server_address_pure, arguments->server_port);
-    auto socket_server = std::make_shared<tcp::socket>(io_context);
-    boost::system::error_code err;
-    socket_server->connect(endpoints);
-    tcp::no_delay option(true);
-    socket_server->set_option(option);
+    tcp::endpoint endpoints;
+    try {
+        endpoints = *resolver_tcp.resolve(arguments->server_address_pure, arguments->server_port);
+    }
+    catch (std::exception &exception) {
+        std::cerr << "Resolving server address failed." << std::endl;
+        std::cerr << exception.what() << std::endl;
+        return 1;
+    }
+    std::shared_ptr<tcp::socket> server_socket;
+    try {
+        server_socket = std::make_shared<tcp::socket>(io_context);
+        server_socket->connect(endpoints);
+        tcp::no_delay option(true);
+        server_socket->set_option(option);
+    }
+    catch (std::exception &exception) {
+        std::cerr << "Connecting with server failed." << std::endl;
+        std::cerr << exception.what() << std::endl;
+        return 1;
+    }
 
-    SocketsInfo sockets_info_gui(socket_gui_receive, gui_endpoint, socket_server);
+    SocketsInfo sockets_info(gui_socket, gui_endpoint, server_socket);
+
     std::thread receive_from_gui_thread{receive_from_gui, std::ref(*arguments), std::ref(game_state),
-                                        std::ref(sockets_info_gui)};
-
-    SocketsInfo sockets_info_server(socket_gui_send, gui_endpoint, socket_server);
+                                        std::ref(sockets_info)};
     std::thread receive_from_server_thread{receive_from_server, std::ref(*arguments), std::ref(game_state),
-                                           std::ref(sockets_info_server)};
+                                           std::ref(sockets_info)};
 
     receive_from_server_thread.join();
+
     return 0;
+
     receive_from_gui_thread.join();
 
     return 0;
