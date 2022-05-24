@@ -19,15 +19,55 @@
 #include <mutex>
 #include <condition_variable>
 
-struct ThreadsInfo {
-    std::mutex mutex;
-    std::condition_variable condition_variable;
-    bool should_exit = false;
-};
-
 using bytes_t = char *;
 using socket_tcp = std::shared_ptr<boost::asio::ip::tcp::socket>;
 using socket_udp = std::shared_ptr<boost::asio::ip::udp::socket>;
+
+class ThreadsInfo {
+    std::mutex mutex;
+    std::condition_variable condition_variable;
+    bool should_exit = false;
+public:
+    auto &get_mutex() {
+        return mutex;
+    }
+
+    auto &get_condition_variable() {
+        return condition_variable;
+    }
+
+    bool get_should_exit() const {
+        return should_exit;
+    }
+
+    void set_should_exit() {
+        should_exit = true;
+        condition_variable.notify_all();
+    }
+};
+
+class SocketsInfo {
+    socket_udp gui_socket;
+    boost::asio::ip::udp::endpoint gui_endpoint;
+    socket_tcp server_socket;
+
+public:
+    SocketsInfo(socket_udp &gui_socket, boost::asio::ip::udp::endpoint &gui_endpoint,
+                socket_tcp &server_socket) : gui_socket(gui_socket), gui_endpoint(gui_endpoint),
+                                             server_socket(server_socket) {}
+
+    auto &get_gui_socket() {
+        return gui_socket;
+    }
+
+    auto &get_server_socket() {
+        return server_socket;
+    }
+
+    auto &get_gui_endpoint() {
+        return gui_endpoint;
+    }
+};
 
 class BytesDeserializationException : public std::exception {
 public:
@@ -36,8 +76,10 @@ public:
     }
 };
 
-class Bytes: public std::vector<char> {
+class Bytes {
 protected:
+    std::vector<char> vector;
+
     size_t index = 0;
 
     void processed(size_t number_of_bytes) {
@@ -64,7 +106,7 @@ public:
         if (is_end()) {
             throw BytesDeserializationException();
         }
-        char value = (*this)[index];
+        char value = vector[index];
         processed(1);
         return value;
     }
@@ -78,7 +120,11 @@ public:
     }
 
     bool is_end() {
-        return index >= size();
+        return index >= vector.size();
+    }
+
+    const auto &get_vector() const {
+        return vector;
     }
 };
 
@@ -86,11 +132,11 @@ class BytesReceiver: public Bytes {
     socket_tcp socket = nullptr;
 
     void listen() {
-        boost::array<char, 128> buf{};
+        boost::array<char, 128> buffer{};
         std::cout << "read_some" << std::endl;
-        size_t size = socket->read_some(boost::asio::buffer(buf));
+        size_t size = socket->read_some(boost::asio::buffer(buffer));
         for (size_t i = 0; i < size; i++) {
-            push_back(buf[i]);
+            vector.push_back(buffer[i]);
         }
     }
 public:
@@ -104,7 +150,7 @@ public:
         if (is_end()) {
             listen();
         }
-        char value = (*this)[index];
+        char value = vector[index];
         processed(1);
         return value;
     }
@@ -117,16 +163,6 @@ public:
     virtual Bytes serialize() const = 0;
 
     virtual ~Serializable() = default;
-};
-
-struct SocketsInfo {
-    socket_udp gui_socket;
-    boost::asio::ip::udp::endpoint gui_endpoint;
-    socket_tcp server_socket;
-
-    SocketsInfo(socket_udp &gui_socket, boost::asio::ip::udp::endpoint &gui_endpoint,
-                socket_tcp &server_socket) : gui_socket(gui_socket), gui_endpoint(gui_endpoint),
-                                            server_socket(server_socket) {}
 };
 
 class Executable {
@@ -599,6 +635,75 @@ class BombExplodedEvent: public Executable {
     List<PlayerId> robots_destroyed;
     List<Position> blocks_destroyed;
 
+    void remove_bomb(GameState &game_state, Bomb &bomb) {
+        auto &bombs = game_state.bombs.get_list();
+        auto it_bombs = bombs.begin();
+
+        while (it_bombs != bombs.end()) {
+            if (*it_bombs == bomb) {
+                bombs.erase(it_bombs);
+                break;
+            }
+            it_bombs++;
+        }
+    }
+
+    void set_dead_players(GameState &game_state) {
+        for (auto &player_id : robots_destroyed.get_list()) {
+            game_state.death_this_round[player_id] = true;
+        }
+    }
+
+    void remove_blocks(GameState &game_state) {
+        auto &blocks_positions = game_state.blocks.get_list();
+
+        for (auto &position : blocks_destroyed.get_list()) {
+            auto it_blocks_positions = blocks_positions.begin();
+
+            while (it_blocks_positions != blocks_positions.end()) {
+                if (*it_blocks_positions == position) {
+                    blocks_positions.erase(it_blocks_positions);
+                    break;
+                }
+
+                it_blocks_positions++;
+            }
+        }
+    }
+
+    bool is_explosion_inside_a_block(GameState &game_state, Position &bomb_position) {
+        game_state.explosions.get_set().insert(bomb_position);
+
+        for (auto &block : blocks_destroyed.get_list()) {
+            if (bomb_position == block) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    void add_explosions(GameState &game_state, Position &bomb_position) {
+        for (size_t i = 0; i < 4; i++) {
+            auto direction = static_cast<Direction>(i);
+            auto current_position = bomb_position;
+            bool do_continue = true;
+
+            for (size_t r = 0; r < game_state.explosion_radius.get_value() && do_continue
+                               && current_position.is_next_proper(direction, game_state.size_x, game_state.size_y); r++) {
+
+                current_position = current_position.next(direction);
+                game_state.explosions.get_set().insert(current_position);
+
+                for (auto &block : blocks_destroyed.get_list()) {
+                    if (current_position == block) {
+                        do_continue = false;
+                        break;
+                    }
+                }
+            }
+        }
+    }
 public:
     explicit BombExplodedEvent(Bytes &bytes) {
         id = BombId(bytes);
@@ -611,56 +716,15 @@ public:
         auto bomb_exploded = game_state.bombs_map[id];
         auto bomb_position = bomb_exploded.position;
 
-        auto it_bombs = game_state.bombs.get_list().begin();
-        while (it_bombs != game_state.bombs.get_list().end()) {
-            if (*it_bombs == bomb_exploded) {
-                game_state.bombs.get_list().erase(it_bombs);
-                break;
-            }
-            it_bombs++;
+        remove_bomb(game_state, bomb_exploded);
+
+        set_dead_players(game_state);
+
+        remove_blocks(game_state);
+
+        if (!is_explosion_inside_a_block(game_state, bomb_position)) {
+            add_explosions(game_state, bomb_position);
         }
-
-        for (auto &player_id : robots_destroyed.get_list()) {
-            game_state.death_this_round[player_id] = true;
-        }
-
-        for (auto &position : blocks_destroyed.get_list()) {
-            auto it_blocks = game_state.blocks.get_list().begin();
-            while (it_blocks != game_state.blocks.get_list().end()) {
-                if (*it_blocks == position) {
-                    game_state.blocks.get_list().erase(it_blocks);
-                    break;
-                }
-                it_blocks++;
-            }
-        }
-
-        game_state.explosions.get_set().insert(bomb_position);
-        for (auto &block : blocks_destroyed.get_list()) {
-            if (bomb_position == block) {
-                return;
-            }
-        }
-
-        for (size_t i = 0; i < 4; i++) {
-            auto direction = static_cast<Direction>(i);
-            auto current_position = bomb_position;
-            bool cont = true;
-            for (size_t r = 0; r < game_state.explosion_radius.get_value() && cont
-                && current_position.is_next_proper(direction, game_state.size_x, game_state.size_y); r++) {
-
-                current_position = current_position.next(direction);
-                game_state.explosions.get_set().insert(current_position);
-
-                for (auto &block : blocks_destroyed.get_list()) {
-                    if (current_position == block) {
-                        cont = false;
-                        break;
-                    }
-                }
-            }
-        }
-        // TODO
     }
 };
 
@@ -696,7 +760,7 @@ public:
     }
 };
 
-class Event: public Executable { // TODO
+class Event: public Executable {
     enum Type: char {
         BombPlaced,
         BombExploded,
@@ -705,31 +769,31 @@ class Event: public Executable { // TODO
     } type;
 
     using event_t = std::variant<BombPlacedEvent, BombExplodedEvent,
-        PlayerMovedEvent, BlockPlacedEvent, bool>; // TODO
+        PlayerMovedEvent, BlockPlacedEvent>;
 
-    event_t event = false;
+    event_t event;
 
-public:
-    explicit Event(Bytes &bytes) {
+    event_t get_event(Bytes &bytes) {
         type = (Type) bytes.get_next_byte();
         switch(type) {
             case BombPlaced:
-                event = BombPlacedEvent(bytes);
+                return BombPlacedEvent(bytes);
                 break;
             case BombExploded:
-                event = BombExplodedEvent(bytes);
+                return BombExplodedEvent(bytes);
                 break;
             case PlayerMoved:
-                event = PlayerMovedEvent(bytes);
+                return PlayerMovedEvent(bytes);
                 break;
             case BlockPlaced:
-                event = BlockPlacedEvent(bytes);
+                return BlockPlacedEvent(bytes);
                 break;
             default:
-                // TODO
-                break;
+                throw BytesDeserializationException();
         }
     }
+public:
+    explicit Event(Bytes &bytes) : event(get_event(bytes)) {}
 
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         switch(type) {
@@ -744,9 +808,6 @@ public:
                 break;
             case BlockPlaced:
                 std::get<BlockPlacedEvent>(event).execute(game_state, sockets_info);
-                break;
-            default:
-                // TODO
                 break;
         }
     }

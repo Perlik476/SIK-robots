@@ -94,40 +94,36 @@ std::shared_ptr<Arguments> parse_arguments(int argc, char *argv[]) {
 void receive_from_gui(Arguments &arguments, GameState &game_state, SocketsInfo &sockets_info,
                       ThreadsInfo &threads_info) {
     for (;;) {
-        boost::array<char, 3> recv_buf{}; // TODO
+        boost::array<char, 3> buffer{}; // TODO
         udp::endpoint remote_endpoint;
         size_t size;
         try {
             std::cerr << "waiting on receive_from" << std::endl;
-            size = sockets_info.gui_socket->receive_from(boost::asio::buffer(recv_buf), remote_endpoint);
+            size = sockets_info.get_gui_socket()->receive_from(boost::asio::buffer(buffer), remote_endpoint);
             std::cerr << "got receive_from" << std::endl;
         }
         catch (std::exception &exception) {
             std::cerr << "Receiving from GUI failed. Terminating." << std::endl;
             std::cerr << exception.what() << std::endl;
 
-            std::unique_lock lock(threads_info.mutex);
-            threads_info.should_exit = true;
-            threads_info.condition_variable.notify_all();
+            std::unique_lock lock(threads_info.get_mutex());
+            threads_info.set_should_exit();
             return;
-            // TODO
         }
 
         std::cout << "packet (size = " << size << "): ";
         for (size_t i = 0; i < size; i++) {
-            std::cout << (int) recv_buf[i] << " ";
+            std::cout << (int) buffer[i] << " ";
         }
         std::cout << "\n";
 
         if (size == 0) {
-//            std::cerr << "exiting" << std::endl;
-//            return;
             continue;
         }
 
         Bytes bytes;
         try {
-            bytes = Bytes(get_c_array(recv_buf), size);
+            bytes = Bytes(get_c_array(buffer), size);
         }
         catch (std::exception &exception) {
             std::cerr << "Deserialization of message from GUI failed." << std::endl;
@@ -138,15 +134,13 @@ void receive_from_gui(Arguments &arguments, GameState &game_state, SocketsInfo &
         if (message != nullptr && bytes.is_end()) {
             if (!game_state.is_joined) {
                 try {
-                    JoinMessage(arguments.player_name).send(sockets_info.server_socket);
+                    JoinMessage(arguments.player_name).send(sockets_info.get_server_socket());
                 }
                 catch (std::exception &exception) {
                     std::cerr << "Sending Join message to server failed. Terminating." << std::endl;
                     std::cerr << exception.what() << std::endl;
-                    // TODO
-                    std::unique_lock lock(threads_info.mutex);
-                    threads_info.should_exit = true;
-                    threads_info.condition_variable.notify_all();
+                    std::unique_lock lock(threads_info.get_mutex());
+                    threads_info.set_should_exit();
                     return;
                 }
                 std::cout << "Join sent." << std::endl;
@@ -159,10 +153,8 @@ void receive_from_gui(Arguments &arguments, GameState &game_state, SocketsInfo &
                 catch (std::exception &exception) {
                     std::cerr << "Sending message to server failed. Terminating." << std::endl;
                     std::cerr << exception.what() << std::endl;
-                    // TODO
-                    std::unique_lock lock(threads_info.mutex);
-                    threads_info.should_exit = true;
-                    threads_info.condition_variable.notify_all();
+                    std::unique_lock lock(threads_info.get_mutex());
+                    threads_info.set_should_exit();
                     return;
                 }
                 std::cout << "message sent." << std::endl;
@@ -177,14 +169,13 @@ void receive_from_server(Arguments &arguments, GameState &game_state, SocketsInf
         BytesReceiver bytes;
         try {
             std::cout << "BYTES" << std::endl;
-            bytes = BytesReceiver(sockets_info.server_socket);
+            bytes = BytesReceiver(sockets_info.get_server_socket());
         }
         catch (std::exception &exception) {
             std::cerr << "Receiving message from server failed. Terminating." << std::endl;
             std::cerr << exception.what() << std::endl;
-            std::unique_lock lock(threads_info.mutex);
-            threads_info.should_exit = true;
-            threads_info.condition_variable.notify_all();
+            std::unique_lock lock(threads_info.get_mutex());
+            threads_info.set_should_exit();
             return;
         }
         while (!bytes.is_end()) {
@@ -196,20 +187,15 @@ void receive_from_server(Arguments &arguments, GameState &game_state, SocketsInf
             catch (std::exception &exception) {
                 std::cerr << "Receiving message from server failed. Terminating." << std::endl;
                 std::cerr << exception.what() << std::endl;
-                std::unique_lock lock(threads_info.mutex);
-                threads_info.should_exit = true;
-                threads_info.condition_variable.notify_all();
+                std::unique_lock lock(threads_info.get_mutex());
+                threads_info.set_should_exit();
                 return;
             }
             if (message == nullptr) {
                 std::cout << "Message received from server could not be deserialized. Terminating." << std::endl;
-                std::unique_lock lock(threads_info.mutex);
-                threads_info.should_exit = true;
-                threads_info.condition_variable.notify_all();
+                std::unique_lock lock(threads_info.get_mutex());
+                threads_info.set_should_exit();
                 return;
-//                sockets_info.server_socket->close();
-//                game_state.is_joined = false; // TODO
-//                return;
             }
             std::cout << "executing server message.\n";
             try {
@@ -218,9 +204,8 @@ void receive_from_server(Arguments &arguments, GameState &game_state, SocketsInf
             catch (std::exception &exception) {
                 std::cerr << "Sending message to gui failed. Terminating." << std::endl;
                 std::cerr << exception.what() << std::endl;
-                std::unique_lock lock(threads_info.mutex);
-                threads_info.should_exit = true;
-                threads_info.condition_variable.notify_all();
+                std::unique_lock lock(threads_info.get_mutex());
+                threads_info.set_should_exit();
                 return;
             }
         }
@@ -294,9 +279,9 @@ int main(int argc, char *argv[]) {
                                            std::ref(sockets_info), std::ref(threads_info)};
 
     {
-        std::unique_lock<std::mutex> lock(threads_info.mutex);
-        while (!threads_info.should_exit) {
-            threads_info.condition_variable.wait(lock);
+        std::unique_lock<std::mutex> lock(threads_info.get_mutex());
+        while (!threads_info.get_should_exit()) {
+            threads_info.get_condition_variable().wait(lock);
         }
         std::cerr << "main got termination" << std::endl;
     }
@@ -304,11 +289,11 @@ int main(int argc, char *argv[]) {
     boost::system::error_code error_code;
 
     std::cerr << "closing gui" << std::endl;
-    sockets_info.gui_socket->shutdown(boost::asio::socket_base::shutdown_both, error_code);
-    sockets_info.gui_socket->close(error_code);
+    sockets_info.get_gui_socket()->shutdown(boost::asio::socket_base::shutdown_both, error_code);
+    sockets_info.get_gui_socket()->close(error_code);
     std::cerr << "closing server" << std::endl;
-    sockets_info.server_socket->shutdown(boost::asio::socket_base::shutdown_both, error_code);
-    sockets_info.server_socket->close(error_code);
+    sockets_info.get_server_socket()->shutdown(boost::asio::socket_base::shutdown_both, error_code);
+    sockets_info.get_server_socket()->close(error_code);
     std::cerr << "gui join" << std::endl;
 
     receive_from_gui_thread.join();
@@ -319,13 +304,5 @@ int main(int argc, char *argv[]) {
 
     std::cerr << "Threads terminated." << std::endl;
 
-    return 1; // TODO
-
-//    receive_from_server_thread.join();
-//
-//    return 0;
-//
-//    receive_from_gui_thread.join();
-//
-//    return 0;
+    return 1;
 }
