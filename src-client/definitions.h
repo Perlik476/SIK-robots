@@ -20,8 +20,11 @@
 #include <condition_variable>
 
 using bytes_t = char *;
-using socket_tcp = std::shared_ptr<boost::asio::ip::tcp::socket>;
-using socket_udp = std::shared_ptr<boost::asio::ip::udp::socket>;
+using udp = boost::asio::ip::udp;
+using tcp = boost::asio::ip::tcp;
+using server_socket_t = std::shared_ptr<tcp::socket>;
+using gui_socket_t = std::shared_ptr<udp::socket>;
+using gui_endpoint_t = udp::endpoint;
 
 class ThreadsInfo {
     std::mutex mutex;
@@ -46,15 +49,112 @@ public:
     }
 };
 
-class SocketsInfo {
-    socket_udp gui_socket;
-    boost::asio::ip::udp::endpoint gui_endpoint;
-    socket_tcp server_socket;
+
+class Arguments {
+    static bool is_proper_string(std::string &s) {
+        return s.length() < 256;
+    }
 
 public:
-    SocketsInfo(socket_udp &gui_socket, boost::asio::ip::udp::endpoint &gui_endpoint,
-                socket_tcp &server_socket) : gui_socket(gui_socket), gui_endpoint(gui_endpoint),
-                                             server_socket(server_socket) {}
+    std::string player_name;
+    uint16_t port;
+    std::string gui_address;
+    std::string server_address;
+
+    std::string gui_address_pure;
+    std::string gui_port;
+    std::string server_address_pure;
+    std::string server_port;
+
+    static std::pair<std::string, std::string> process_address(std::string &address) {
+        int length = (int) address.length();
+        std::cout << length << "\n";
+
+        std::string address_pure, port_str;
+
+        for (int i = length - 1; i >= 0; i--) {
+            char c = address[(size_t) i];
+            if (c == ':') {
+                for (size_t j = 0; j < (size_t) i; j++) {
+                    address_pure += address[j];
+                }
+                break;
+            }
+            if (c < '0' || c > '9') {
+                exit(1);
+            }
+            port_str += c;
+        }
+        std::reverse(port_str.begin(), port_str.end());
+
+        return { address_pure, port_str };
+    }
+
+    bool check_correctness() {
+        return is_proper_string(player_name);
+    }
+
+public:
+    Arguments(std::string player_name, uint16_t port, std::string gui_address, std::string server_address)
+            : player_name(std::move(player_name)), port(port), gui_address(std::move(gui_address)),
+              server_address(std::move(server_address)) {
+
+        auto pair = process_address(this->gui_address);
+        gui_address_pure = pair.first;
+        gui_port = pair.second;
+
+        pair = process_address(this->server_address);
+        server_address_pure = pair.first;
+        server_port = pair.second;
+    }
+};
+
+class SocketsInfo {
+    boost::asio::io_context io_context;
+    gui_socket_t gui_socket;
+    gui_endpoint_t gui_endpoint;
+    server_socket_t server_socket;
+
+public:
+    SocketsInfo(Arguments &arguments) {
+        udp::resolver resolver(io_context);
+        try {
+            gui_endpoint = *resolver.resolve(arguments.gui_address_pure, arguments.gui_port).begin();
+        }
+        catch (std::exception &exception) {
+            std::cerr << "Resolving GUI address failed." << std::endl;
+            throw exception;
+        }
+
+        try {
+            gui_socket = std::make_shared<udp::socket>(io_context, udp::endpoint(udp::v6(), arguments.port));
+        }
+        catch (std::exception &exception) {
+            std::cerr << "Socket for GUI communications could not be opened." << std::endl;
+            throw exception;
+        }
+
+        tcp::resolver resolver_tcp(io_context);
+        tcp::endpoint endpoints;
+        try {
+            endpoints = *resolver_tcp.resolve(arguments.server_address_pure, arguments.server_port);
+        }
+        catch (std::exception &exception) {
+            std::cerr << "Resolving server address failed." << std::endl;
+            throw exception;
+        }
+
+        try {
+            server_socket = std::make_shared<tcp::socket>(io_context);
+            server_socket->connect(endpoints);
+            tcp::no_delay option(true);
+            server_socket->set_option(option);
+        }
+        catch (std::exception &exception) {
+            std::cerr << "Connecting with server failed." << std::endl;
+            throw exception;
+        }
+    }
 
     auto &get_gui_socket() {
         return gui_socket;
@@ -129,7 +229,7 @@ public:
 };
 
 class BytesReceiver: public Bytes {
-    socket_tcp socket = nullptr;
+    server_socket_t socket = nullptr;
 
     void listen() {
         boost::array<char, 128> buffer{};
@@ -142,7 +242,7 @@ class BytesReceiver: public Bytes {
 public:
     BytesReceiver() = default;
 
-    BytesReceiver(socket_tcp &socket) : socket(socket) {
+    BytesReceiver(server_socket_t &socket) : socket(socket) {
         listen();
     }
 

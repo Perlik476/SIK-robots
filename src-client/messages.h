@@ -10,7 +10,7 @@ class ClientMessage: public Serializable {
 private:
     virtual char get_identifier() const = 0;
 public:
-    void send(const socket_tcp &socket) const {
+    void send(const server_socket_t &socket) const {
         Bytes message = serialize();
         socket->send(boost::asio::buffer(message.get_vector()));
     }
@@ -73,7 +73,7 @@ class DrawMessage: public Serializable {
 private:
     virtual char get_identifier() const = 0;
 public:
-    void send(const socket_udp &socket, const boost::asio::ip::udp::endpoint &endpoint) const {
+    void send(const gui_socket_t &socket, const boost::asio::ip::udp::endpoint &endpoint) const {
         Bytes message = serialize();
         socket->send_to(boost::asio::buffer(message.get_vector()), endpoint);
     }
