@@ -243,10 +243,11 @@ class GameEndedMessage: public ServerMessage {
 public:
     explicit GameEndedMessage(Bytes &bytes) : scores(PlayerScoresMap(bytes)) {}
 
-    void execute([[maybe_unused]] GameState &game_state, SocketsInfo &sockets_info) override {
+    void execute(GameState &game_state, SocketsInfo &sockets_info) override {
         game_state.scores = scores;
         game_state.is_joined = false;
-        GameMessage(game_state).send(sockets_info.gui_socket, sockets_info.gui_endpoint);
+        game_state.reset();
+        LobbyMessage(game_state).send(sockets_info.gui_socket, sockets_info.gui_endpoint);
         // TODO
     }
 };

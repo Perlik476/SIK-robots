@@ -12,15 +12,29 @@
 #include <netinet/in.h>
 #include <variant>
 #include <iostream>
-#include <mutex>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/array.hpp>
 #include <set>
+#include <mutex>
+#include <condition_variable>
+
+struct ThreadsInfo {
+    std::mutex mutex;
+    std::condition_variable condition_variable;
+    bool should_exit = false;
+};
 
 using bytes_t = char *;
 using socket_tcp = std::shared_ptr<boost::asio::ip::tcp::socket>;
 using socket_udp = std::shared_ptr<boost::asio::ip::udp::socket>;
+
+class BytesDeserializationException : public std::exception {
+public:
+    const char *what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_NOTHROW override {
+        return "Message deserialization failed.";
+    }
+};
 
 class Bytes: public std::vector<char> {
 protected:
@@ -47,6 +61,9 @@ public:
     Bytes operator+ (const Bytes &other);
 
     virtual char get_next_byte() {
+        if (is_end()) {
+            throw BytesDeserializationException();
+        }
         char value = (*this)[index];
         processed(1);
         return value;
@@ -66,17 +83,19 @@ public:
 };
 
 class BytesReceiver: public Bytes {
-    socket_tcp socket;
+    socket_tcp socket = nullptr;
 
     void listen() {
         boost::array<char, 128> buf{};
-        boost::system::error_code error;
-        size_t size = socket->read_some(boost::asio::buffer(buf), error);
+        std::cout << "read_some" << std::endl;
+        size_t size = socket->read_some(boost::asio::buffer(buf));
         for (size_t i = 0; i < size; i++) {
             push_back(buf[i]);
         }
     }
 public:
+    BytesReceiver() = default;
+
     BytesReceiver(socket_tcp &socket) : socket(socket) {
         listen();
     }
@@ -367,18 +386,10 @@ public:
     auto &get_list() const {
         return list;
     }
-
-    auto begin() {
-        return list.begin();
-    }
-
-    auto end() {
-        return list.end();
-    }
 };
 
 template<class T>
-requires isSerializable<T> || isExecutable<T> // TODO
+requires isSerializable<T> // TODO
 class Set: public Serializable {
     std::set<T> set;
 
@@ -393,19 +404,14 @@ public:
     }
 
     Bytes serialize() const override {
-        if constexpr (isSerializable<T>) {
-            auto length = static_cast<uint32_t>(set.size());
+        auto length = static_cast<uint32_t>(set.size());
 
-            Bytes list_content;
-            for (auto &element: set) {
-                list_content += element.serialize();
-            }
+        Bytes list_content;
+        for (auto &element: set) {
+            list_content += element.serialize();
+        }
 
-            return Uint32(length).serialize() + list_content;
-        }
-        else {
-            return {};
-        }
+        return Uint32(length).serialize() + list_content;
     }
 
     std::set<T> &get_set() {
@@ -554,6 +560,18 @@ public:
         for (auto &[x, y] : scores.get_map()) {
             std::cout << "scores[" << (int) x.get_value() << "] = " << y.get_value() << "\n";
         }
+    }
+
+    void reset() {
+        turn = 0;
+        players.get_map().clear();
+        player_positions.get_map().clear();
+        blocks.get_list().clear();
+        bombs.get_list().clear();
+        bombs_map.clear();
+        explosions.get_set().clear();
+        scores.get_map().clear();
+        death_this_round.clear();
     }
 };
 
