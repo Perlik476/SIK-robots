@@ -116,6 +116,8 @@ class SocketsInfo {
     server_socket_t server_socket;
 
 public:
+    SocketsInfo() = default;
+
     SocketsInfo(Arguments &arguments) {
         udp::resolver resolver(io_context);
         try {
