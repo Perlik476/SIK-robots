@@ -256,6 +256,11 @@ using PlayerId = Uint8;
 using BombId = Uint32;
 using Score = Uint32;
 using Coordinate = Uint16;
+using players_count_t = Uint8;
+using game_length_t = Uint16;
+using explosion_radius_t = Uint16;
+using bomb_timer_t = Uint16;
+using turn_t = Uint16;
 
 enum Direction: char {
     Up,
@@ -266,7 +271,7 @@ enum Direction: char {
 };
 
 class Position: public Serializable {
-    Uint16 x, y;
+    Coordinate x, y;
 public:
     auto &get_x() { return x; }
 
@@ -285,8 +290,8 @@ public:
 //    Position(Position &position) : x(position.get_x()), y(position.get_y()) {}
 
     explicit Position(Bytes &bytes) {
-        x = Uint16(bytes);
-        y = Uint16(bytes);
+        x = Coordinate(bytes);
+        y = Coordinate(bytes);
     }
 
     Bytes serialize() const override {
@@ -320,7 +325,7 @@ public:
             case Direction::Left:
                 return left();
             default:
-                return Position(0, 0); // TODO
+                throw std::invalid_argument("Argument is not a proper direction.");
         }
     }
 
@@ -378,7 +383,7 @@ public:
     }
 
     Bytes serialize() const override {
-        auto length = static_cast<uint8_t>(string.length()); // TODO check length < 256
+        auto length = static_cast<uint8_t>(string.length());
 
         return Uint8(length).serialize() + Bytes(string);
     }
@@ -411,7 +416,7 @@ public:
             return Uint32(length).serialize() + list_content;
         }
         else {
-            return {};
+            throw std::logic_error("Cannot serialize non-serializable type.");
         }
     }
 
@@ -425,7 +430,7 @@ public:
 };
 
 template<class T>
-requires isSerializable<T> // TODO
+requires isSerializable<T>
 class Set: public Serializable {
     std::set<T> set;
 
@@ -542,24 +547,24 @@ public:
 };
 
 // TODO pozamieniać
-using PlayersMap = Map<PlayerId, Player>;
-using PlayersPositionsMap = Map<PlayerId, Position>;
-using PlayerScoresMap = Map<PlayerId, Score>;
-using BlocksList = List<Position>;
-using BombsList = List<Bomb>;
+using players_t = Map<PlayerId, Player>;
+using players_positions_t = Map<PlayerId, Position>;
+using players_scores_t = Map<PlayerId, Score>;
+using blocks_t = List<Position>;
+using bombs_t = List<Bomb>;
 
 class GameState {
 public:
     bool is_joined = false;
     String server_name;
     Uint8 players_count;
-    Uint16 size_x;
-    Uint16 size_y;
-    Uint16 game_length;
-    Uint16 explosion_radius;
-    Uint16 bomb_timer;
-    PlayersMap players;
-    Uint16 turn;
+    Coordinate size_x;
+    Coordinate size_y;
+    game_length_t game_length;
+    explosion_radius_t explosion_radius;
+    bomb_timer_t bomb_timer;
+    players_t players;
+    turn_t turn;
     Map<PlayerId, Position> player_positions;
     List<Position> blocks;
     List<Bomb> bombs;

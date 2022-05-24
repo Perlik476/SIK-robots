@@ -30,7 +30,7 @@ endif()
 
 # Set flags
 set (CMAKE_CXX_STANDARD 20)
-set (CMAKE_CXX_FLAGS "-Wall -Wextra -Wconversion -pthread -std=gnu++20") #-Werror
+set (CMAKE_CXX_FLAGS "-Wall -Wextra -Wconversion -Werror -pthread -std=gnu++20")
 set (CMAKE_CXX_FLAGS_DEBUG "-g")
 set (CMAKE_CXX_FLAGS_RELEASE "-O2")
 

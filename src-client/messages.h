@@ -188,15 +188,15 @@ public:
 };
 
 class GameStartedMessage: public ServerMessage {
-    PlayersMap players;
+    players_t players;
 
 public:
-    explicit GameStartedMessage(Bytes &bytes) : players(PlayersMap(bytes)) {}
+    explicit GameStartedMessage(Bytes &bytes) : players(players_t(bytes)) {}
 
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         game_state.players = players;
         std::cout << "GameStarted: \n";
-        game_state.scores = PlayerScoresMap();
+        game_state.scores = players_scores_t();
         for (auto &[key, value] : game_state.players.get_map()) {
             std::cout << (int) key.get_value() << ": name: " << value.get_name().get_string() << ", addr: " << value.get_address().get_string() << "\n";
             game_state.scores.get_map()[key] = Score(0);
@@ -229,10 +229,10 @@ public:
 };
 
 class GameEndedMessage: public ServerMessage {
-    PlayerScoresMap scores;
+    players_scores_t scores;
 
 public:
-    explicit GameEndedMessage(Bytes &bytes) : scores(PlayerScoresMap(bytes)) {}
+    explicit GameEndedMessage(Bytes &bytes) : scores(players_scores_t(bytes)) {}
 
     void execute(GameState &game_state, SocketsInfo &sockets_info) override {
         game_state.scores = scores;

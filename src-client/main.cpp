@@ -16,6 +16,10 @@ using boost::asio::ip::tcp;
 using boost::asio::ip::udp;
 
 class Arguments {
+    static bool is_proper_string(std::string &s) {
+        return s.length() < 256;
+    }
+
 public:
     std::string player_name;
     uint16_t port;
@@ -27,7 +31,7 @@ public:
     std::string server_address_pure;
     std::string server_port;
 
-    std::pair<std::string, std::string> process_address(std::string &address) {
+    static std::pair<std::string, std::string> process_address(std::string &address) {
         int length = (int) address.length();
         std::cout << length << "\n";
 
@@ -51,6 +55,10 @@ public:
         return { address_pure, port_str };
     }
 
+    bool check_correctness() {
+        return is_proper_string(player_name) && is_proper_string(gui_address) && is_proper_string(server_address);
+    }
+
 public:
     Arguments(std::string player_name, uint16_t port, std::string gui_address, std::string server_address)
         : player_name(std::move(player_name)), port(port), gui_address(std::move(gui_address)),
@@ -66,7 +74,7 @@ public:
     }
 };
 
-std::shared_ptr<Arguments> parse_arguments(int argc, char *argv[]) {
+Arguments parse_arguments(int argc, char *argv[]) {
     std::string gui_address, player_name, server_address;
     uint16_t port;
 
@@ -87,7 +95,7 @@ std::shared_ptr<Arguments> parse_arguments(int argc, char *argv[]) {
 
     po::notify(vm);
 
-    return make_shared<Arguments>(player_name, port, gui_address, server_address);
+    return {player_name, port, gui_address, server_address};
 }
 
 
@@ -163,12 +171,10 @@ void receive_from_gui(Arguments &arguments, GameState &game_state, SocketsInfo &
     }
 }
 
-void receive_from_server(Arguments &arguments, GameState &game_state, SocketsInfo sockets_info,
-                         ThreadsInfo &threads_info) {
+void receive_from_server(GameState &game_state, SocketsInfo sockets_info, ThreadsInfo &threads_info) {
     for (;;) {
         BytesReceiver bytes;
         try {
-            std::cout << "BYTES" << std::endl;
             bytes = BytesReceiver(sockets_info.get_server_socket());
         }
         catch (std::exception &exception) {
@@ -181,7 +187,6 @@ void receive_from_server(Arguments &arguments, GameState &game_state, SocketsInf
         while (!bytes.is_end()) {
             std::shared_ptr<ServerMessage> message;
             try {
-                std::cout << "MESSAGE" << std::endl;
                 message = get_server_message(bytes);
             }
             catch (std::exception &exception) {
@@ -215,11 +220,10 @@ void receive_from_server(Arguments &arguments, GameState &game_state, SocketsInf
 int main(int argc, char *argv[]) {
 
     auto arguments = parse_arguments(argc, argv);
-    std::cout << "gui_address: " << arguments->gui_address << "\n"
-        << "server_address: " << arguments->server_address << "\n"
-        << "port: " << arguments->port << "\n"
-        << "player_name: " << arguments->player_name << "\n";
-
+    std::cout << "gui_address: " << arguments.gui_address << "\n"
+        << "server_address: " << arguments.server_address << "\n"
+        << "port: " << arguments.port << "\n"
+        << "player_name: " << arguments.player_name << "\n";
 
     boost::asio::io_context io_context;
 
@@ -228,7 +232,7 @@ int main(int argc, char *argv[]) {
     udp::resolver resolver(io_context);
     udp::endpoint gui_endpoint;
     try {
-        gui_endpoint = *resolver.resolve(arguments->gui_address_pure, arguments->gui_port).begin();
+        gui_endpoint = *resolver.resolve(arguments.gui_address_pure, arguments.gui_port).begin();
     }
     catch (std::exception &exception) {
         std::cerr << "Resolving GUI address failed." << std::endl;
@@ -238,7 +242,7 @@ int main(int argc, char *argv[]) {
 
     std::shared_ptr<udp::socket> gui_socket;
     try {
-        gui_socket = std::make_shared<udp::socket>(io_context, udp::endpoint(udp::v6(), arguments->port));
+        gui_socket = std::make_shared<udp::socket>(io_context, udp::endpoint(udp::v6(), arguments.port));
     }
     catch (std::exception &exception) {
         std::cerr << "Socket for GUI communications could not be opened." << std::endl;
@@ -249,7 +253,7 @@ int main(int argc, char *argv[]) {
     tcp::resolver resolver_tcp(io_context);
     tcp::endpoint endpoints;
     try {
-        endpoints = *resolver_tcp.resolve(arguments->server_address_pure, arguments->server_port);
+        endpoints = *resolver_tcp.resolve(arguments.server_address_pure, arguments.server_port);
     }
     catch (std::exception &exception) {
         std::cerr << "Resolving server address failed." << std::endl;
@@ -273,9 +277,9 @@ int main(int argc, char *argv[]) {
     ThreadsInfo threads_info;
     SocketsInfo sockets_info(gui_socket, gui_endpoint, server_socket);
 
-    std::thread receive_from_gui_thread{receive_from_gui, std::ref(*arguments), std::ref(game_state),
+    std::thread receive_from_gui_thread{receive_from_gui, std::ref(arguments), std::ref(game_state),
                                         std::ref(sockets_info), std::ref(threads_info)};
-    std::thread receive_from_server_thread{receive_from_server, std::ref(*arguments), std::ref(game_state),
+    std::thread receive_from_server_thread{receive_from_server, std::ref(game_state),
                                            std::ref(sockets_info), std::ref(threads_info)};
 
     {
