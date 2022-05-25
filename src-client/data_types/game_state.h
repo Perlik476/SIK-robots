@@ -29,6 +29,8 @@ using explosions_t = Set<Position>;
 class GameState {
 public:
     bool is_joined = false;
+    std::string player_name;
+
     String server_name;
     players_count_t players_count;
     Coordinate size_x;
