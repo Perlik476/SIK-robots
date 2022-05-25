@@ -215,6 +215,11 @@ public:
         // TODO
         std::cout << "TurnMessage:\nturn: " << turn.get_value() << "\n";
         std::cout << "list length: " << events.get_list().size() << "\n";
+
+        for (auto &bomb : game_state.bombs.get_list()) {
+            bomb->timer -= 1;
+        }
+
         game_state.prepare_for_turn();
 
         game_state.turn = turn.get_value();
@@ -223,6 +228,8 @@ public:
         }
 
         game_state.after_turn();
+
+        // TODO mapa z bombami
 
         GameMessage(game_state).send(sockets_info.get_gui_socket(), sockets_info.get_gui_endpoint());
     }

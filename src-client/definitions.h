@@ -341,6 +341,15 @@ public:
         return *this += other;
     }
 
+    Uint<T> &operator-=(Uint<T> const &other) {
+        value -= other.get_value();
+        return *this;
+    }
+
+    Uint<T> operator-(Uint<T> const &other) const {
+        return *this += other;
+    }
+
     auto get_value() {
         return value;
     }
@@ -531,6 +540,41 @@ public:
     }
 };
 
+
+template<class T>
+requires isSerializable<T>
+class PointersList: public Serializable {
+    std::vector<std::shared_ptr<T>> list;
+public:
+    PointersList() = default;
+
+    explicit PointersList(Bytes &bytes) {
+        Uint32 length = Uint32(bytes);
+        for (size_t i = 0; i < length.get_value(); i++) {
+            list.push_back(std::make_shared<T>(bytes));
+        }
+    }
+
+    Bytes serialize() const override {
+        auto length = static_cast<uint32_t>(list.size());
+
+        Bytes list_content;
+        for (auto &element: list) {
+            list_content += element->serialize();
+        }
+
+        return Uint32(length).serialize() + list_content;
+    }
+
+    auto &get_list() {
+        return list;
+    }
+
+    auto &get_list() const {
+        return list;
+    }
+};
+
 template<class T>
 requires isSerializable<T>
 class Set: public Serializable {
@@ -669,8 +713,8 @@ public:
     turn_t turn;
     Map<PlayerId, Position> player_positions;
     List<Position> blocks;
-    List<Bomb> bombs;
-    std::map<BombId, Bomb> bombs_map;
+    PointersList<Bomb> bombs;
+    std::map<BombId, std::shared_ptr<Bomb>> bombs_map;
     Set<Position> explosions;
     Map<PlayerId, Score> scores;
     std::map<PlayerId, bool> death_this_round;
@@ -695,7 +739,22 @@ public:
     }
 
     void print() const {
-        std::cout << "GameState:\n explosions:\n";
+        std::cout << "GameState:" << std::endl;
+        std::cout << "bombs:\n";
+        for (auto &bomb : bombs.get_list()) {
+            std::cout << "(" << bomb->position.get_x().get_value() << ", " << bomb->position.get_y().get_value() << "), "
+                << bomb->timer.get_value() << "\n";
+        }
+        std::cout << "bombs map:\n";
+        for (auto &[id, bomb] : bombs_map) {
+            std::cout << id.get_value() << ": (" << bomb->position.get_x().get_value() << ", " << bomb->position.get_y().get_value() << "), "
+                      << bomb->timer.get_value() << "\n";
+        }
+        std::cout << "blocks:\n";
+        for (auto &block_position : blocks.get_list()) {
+            std::cout << "(" << block_position.get_x().get_value() << ", " << block_position.get_y().get_value() << ")\n";
+        }
+        std::cout << "explosions:\n";
         for (auto &x : explosions.get_set()) {
             std::cout << "(" << x.get_x().get_value() << ", " << x.get_y().get_value() << ")\n";
         }
@@ -729,7 +788,7 @@ public:
     }
 
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
-        auto bomb = Bomb(position, game_state.bomb_timer);
+        auto bomb = std::make_shared<Bomb>(position, game_state.bomb_timer);
         game_state.bombs.get_list().push_back(bomb);
         game_state.bombs_map[id] = bomb;
 //      TODO
@@ -742,7 +801,7 @@ class BombExplodedEvent: public Executable {
     List<PlayerId> robots_destroyed;
     List<Position> blocks_destroyed;
 
-    void remove_bomb(GameState &game_state, Bomb &bomb) {
+    void remove_bomb(GameState &game_state, std::shared_ptr<Bomb> &bomb) {
         auto &bombs = game_state.bombs.get_list();
         auto it_bombs = bombs.begin();
 
@@ -821,7 +880,7 @@ public:
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         std::cout << "BombExploded!\n";
         auto bomb_exploded = game_state.bombs_map[id];
-        auto bomb_position = bomb_exploded.position;
+        auto bomb_position = bomb_exploded->position;
 
         remove_bomb(game_state, bomb_exploded);
 
