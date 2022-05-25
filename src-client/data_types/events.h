@@ -24,7 +24,7 @@ public:
 
 class BombExplodedEvent: public Executable {
     BombId id;
-    List<PlayerId> robots_destroyed;
+    List<player_id_t> robots_destroyed;
     List<Position> blocks_destroyed;
 
     void remove_bomb(GameState &game_state, std::shared_ptr<Bomb> &bomb);
@@ -39,7 +39,7 @@ class BombExplodedEvent: public Executable {
 public:
     explicit BombExplodedEvent(Bytes &bytes) {
         id = BombId(bytes);
-        robots_destroyed = List<PlayerId>(bytes);
+        robots_destroyed = List<player_id_t>(bytes);
         blocks_destroyed = List<Position>(bytes);
     }
 
@@ -47,12 +47,12 @@ public:
 };
 
 class PlayerMovedEvent: public Executable {
-    PlayerId id;
+    player_id_t id;
     Position position;
 
 public:
     explicit PlayerMovedEvent(Bytes &bytes) {
-        id = PlayerId(bytes);
+        id = player_id_t(bytes);
         position = Position(bytes);
     }
 

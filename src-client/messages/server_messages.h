@@ -35,8 +35,6 @@ public:
     }
 
     void execute(GameState &game_state, SocketsInfo &sockets_info) override {
-//        std::cout << "Hello message received from server." << std::endl;
-
         game_state.server_name = server_name;
         game_state.players_count = players_count;
         game_state.size_x = size_x;
@@ -50,14 +48,13 @@ public:
 };
 
 class AcceptedPlayerMessage: public ServerMessage {
-    PlayerId id;
+    player_id_t id;
     Player player;
 
 public:
-    explicit AcceptedPlayerMessage(Bytes &bytes) : id(PlayerId(bytes)), player(Player(bytes)) {}
+    explicit AcceptedPlayerMessage(Bytes &bytes) : id(player_id_t(bytes)), player(Player(bytes)) {}
 
     void execute(GameState &game_state, SocketsInfo &sockets_info) override {
-//        std::cout << "Accepted player message received from server." << std::endl;
         game_state.players.get_map()[id] = Player(player.get_name(), player.get_address());
         LobbyMessage(game_state).send(sockets_info.get_gui_socket(), sockets_info.get_gui_endpoint());
     }
@@ -70,11 +67,10 @@ public:
     explicit GameStartedMessage(Bytes &bytes) : players(players_t(bytes)) {}
 
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
-//        std::cout << "Game started message received from server." << std::endl;
         game_state.players = players;
         game_state.scores = players_scores_t();
         for (auto &[key, value] : game_state.players.get_map()) {
-            game_state.scores.get_map()[key] = Score(0);
+            game_state.scores.get_map()[key] = score_t(0);
         }
     }
 };
@@ -87,12 +83,6 @@ public:
     explicit TurnMessage(Bytes &bytes) : turn(Uint16(bytes)), events(List<Event>(bytes)) {}
 
     void execute(GameState &game_state, SocketsInfo &sockets_info) override {
-        // TODO
-//        std::cout << "Turn message received from server: turn = " << turn.get_value() << std::endl;
-        for (auto &bomb : game_state.bombs.get_list()) {
-            bomb->timer -= 1;
-        }
-
         game_state.prepare_for_turn();
 
         game_state.turn = turn.get_value();
@@ -101,8 +91,6 @@ public:
         }
 
         game_state.after_turn();
-
-        // TODO mapa z bombami
 
         GameMessage(game_state).send(sockets_info.get_gui_socket(), sockets_info.get_gui_endpoint());
     }

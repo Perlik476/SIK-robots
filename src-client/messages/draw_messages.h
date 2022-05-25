@@ -47,7 +47,6 @@ public:
     explicit GameMessage(GameState &game_state) : game_state(game_state) {}
 
     Bytes serialize() const override {
-//        game_state.print();
         return Uint8(static_cast<uint8_t>(get_identifier())).serialize()
                + game_state.server_name.serialize()
                + game_state.size_x.serialize()

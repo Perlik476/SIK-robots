@@ -11,26 +11,26 @@
 #include "player.h"
 #include "position.h"
 #include "bomb.h"
-// TODO
 
-using Score = Uint32;
+using score_t = Uint32;
 using players_count_t = Uint8;
 using game_length_t = Uint16;
 using explosion_radius_t = Uint16;
 using bomb_timer_t = Uint16;
 using turn_t = Uint16;
 
-using players_t = Map<PlayerId, Player>;
-using players_positions_t = Map<PlayerId, Position>;
-using players_scores_t = Map<PlayerId, Score>;
+using players_t = Map<player_id_t, Player>;
+using players_positions_t = Map<player_id_t, Position>;
+using players_scores_t = Map<player_id_t, score_t>;
 using blocks_t = List<Position>;
 using bombs_t = PointersList<Bomb>;
+using explosions_t = Set<Position>;
 
 class GameState {
 public:
     bool is_joined = false;
     String server_name;
-    Uint8 players_count;
+    players_count_t players_count;
     Coordinate size_x;
     Coordinate size_y;
     game_length_t game_length;
@@ -38,13 +38,13 @@ public:
     bomb_timer_t bomb_timer;
     players_t players;
     turn_t turn;
-    Map<PlayerId, Position> player_positions;
-    List<Position> blocks;
-    PointersList<Bomb> bombs;
+    players_positions_t player_positions;
+    blocks_t blocks;
+    bombs_t bombs;
     std::map<BombId, std::shared_ptr<Bomb>> bombs_map;
-    Set<Position> explosions;
-    Map<PlayerId, Score> scores;
-    std::map<PlayerId, bool> death_this_round;
+    explosions_t explosions;
+    players_scores_t scores;
+    std::map<player_id_t, bool> death_this_round;
 
     void prepare_for_turn() {
         explosions = Set<Position>();
@@ -52,42 +52,16 @@ public:
         for (auto [player_id, _] : scores.get_map()) {
             death_this_round[player_id] = false;
         }
+        for (auto &bomb : bombs.get_list()) {
+            bomb->timer -= 1;
+        }
     }
 
     void after_turn() {
         auto it = scores.get_map().begin();
         while (it != scores.get_map().end()) {
-            if (death_this_round[it->first]) {
-//                std::cout << "PlayerId: " << (int) it->first.get_value() << " died.\n";
-            }
             it->second += death_this_round[it->first];
             it++;
-        }
-    }
-
-    void print() const {
-        std::cout << "GameState:" << std::endl;
-        std::cout << "bombs:\n";
-        for (auto &bomb : bombs.get_list()) {
-            std::cout << "(" << bomb->position.get_x().get_value() << ", " << bomb->position.get_y().get_value() << "), "
-                      << bomb->timer.get_value() << "\n";
-        }
-        std::cout << "bombs map:\n";
-        for (auto &[id, bomb] : bombs_map) {
-            std::cout << id.get_value() << ": (" << bomb->position.get_x().get_value() << ", " << bomb->position.get_y().get_value() << "), "
-                      << bomb->timer.get_value() << "\n";
-        }
-        std::cout << "blocks:\n";
-        for (auto &block_position : blocks.get_list()) {
-            std::cout << "(" << block_position.get_x().get_value() << ", " << block_position.get_y().get_value() << ")\n";
-        }
-        std::cout << "explosions:\n";
-        for (auto &x : explosions.get_set()) {
-            std::cout << "(" << x.get_x().get_value() << ", " << x.get_y().get_value() << ")\n";
-        }
-        std::cout << "scores:\n";
-        for (auto &[x, y] : scores.get_map()) {
-            std::cout << "scores[" << (int) x.get_value() << "] = " << y.get_value() << "\n";
         }
     }
 

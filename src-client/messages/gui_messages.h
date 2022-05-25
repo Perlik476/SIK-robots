@@ -17,7 +17,6 @@ public:
     PlaceBombGuiMessage() = default;
 
     void execute([[maybe_unused]] GameState &game_state, SocketsInfo &sockets_info) override {
-//        std::cout << "Place bomb message sent to server." << std::endl;
         PlaceBombMessage().send(sockets_info.get_server_socket());
     }
 };
@@ -27,7 +26,6 @@ public:
     PlaceBlockGuiMessage() = default;
 
     void execute([[maybe_unused]] GameState &game_state, SocketsInfo &sockets_info) override {
-//        std::cout << "Place block message sent to server." << std::endl;
         PlaceBlockMessage().send(sockets_info.get_server_socket());
     }
 };
@@ -38,8 +36,7 @@ public:
     explicit MoveGuiMessage(Bytes &bytes) : direction(get_direction(bytes)) {}
 
     void execute([[maybe_unused]] GameState &game_state, SocketsInfo &sockets_info) override {
-//        std::cout << "Move message sent to server." << std::endl;
-        MoveMessage(direction).send(sockets_info.get_server_socket());\
+        MoveMessage(direction).send(sockets_info.get_server_socket());
     }
 };
 

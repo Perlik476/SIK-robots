@@ -6,7 +6,7 @@
 #include "uint.h"
 #include "string.h"
 
-using PlayerId = Uint8;
+using player_id_t = Uint8;
 
 class Player: public Serializable {
 private:

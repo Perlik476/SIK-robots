@@ -5,9 +5,6 @@ void BombPlacedEvent::execute(GameState &game_state, [[maybe_unused]] SocketsInf
     auto bomb = std::make_shared<Bomb>(position, game_state.bomb_timer);
     game_state.bombs.get_list().push_back(bomb);
     game_state.bombs_map[id] = bomb;
-    //      TODO
-
-//        std::cout << "BombPlaced\nid: " << id.get_value() << ", x: " << position.get_x().get_value() << ", y: " << position.get_y().get_value() << "\n";
 }
 
 void BombExplodedEvent::remove_bomb(GameState &game_state, std::shared_ptr<Bomb> &bomb) {
@@ -49,13 +46,8 @@ void BombExplodedEvent::remove_blocks(GameState &game_state) {
 bool BombExplodedEvent::is_explosion_inside_a_block(GameState &game_state, Position &bomb_position) {
     game_state.explosions.get_set().insert(bomb_position);
 
-    for (auto &block : blocks_destroyed.get_list()) {
-        if (bomb_position == block) {
-            return true;
-        }
-    }
-
-    return false;
+    return std::ranges::any_of(blocks_destroyed.get_list(),
+                        [&bomb_position](auto &block_position){ return bomb_position == block_position; });
 }
 
 void BombExplodedEvent::add_explosions(GameState &game_state, Position &bomb_position) {
@@ -81,7 +73,6 @@ void BombExplodedEvent::add_explosions(GameState &game_state, Position &bomb_pos
 }
 
 void BombExplodedEvent::execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) {
-    //        std::cout << "BombExploded!\n";
     auto bomb_exploded = game_state.bombs_map[id];
     auto bomb_position = bomb_exploded->position;
 
@@ -97,15 +88,11 @@ void BombExplodedEvent::execute(GameState &game_state, [[maybe_unused]] SocketsI
 }
 
 void PlayerMovedEvent::execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) {
-// TODO
     game_state.player_positions.get_map()[id] = Position(position.get_x().get_value(), position.get_y().get_value());
-//        std::cout << "PlayerMoved: id: " << (int) id.get_value() << ", x: " << position.get_x().get_value() << ", y: " << position.get_y().get_value() << "\n";
 }
 
 void BlockPlacedEvent::execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) {
     game_state.blocks.get_list().push_back(position);
-//        std::cout << "BlockPlaced: x: " << position.get_x().get_value() << ", y: " << position.get_y().get_value() << "\n";
-// TODO
 }
 
 Event::event_t Event::get_event(Bytes &bytes) {

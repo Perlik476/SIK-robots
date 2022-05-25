@@ -23,8 +23,6 @@ public:
 
     Position(Uint16 &x, Uint16 &y) : x(x), y(y) {}
 
-//    Position(Position &position) : x(position.get_x()), y(position.get_y()) {}
-
     explicit Position(Bytes &bytes) {
         x = Coordinate(bytes);
         y = Coordinate(bytes);
