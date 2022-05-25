@@ -38,3 +38,11 @@ Bytes &Bytes::operator+= (const Bytes &other) {
 Bytes Bytes::operator+ (const Bytes &other) {
     return *this += other;
 }
+
+Direction get_direction(Bytes &bytes) {
+    char c = bytes.get_next_byte();
+    if (c >= 4) {
+        throw BytesDeserializationException();
+    }
+    return (Direction) c;
+}

@@ -35,7 +35,7 @@ public:
 class MoveGuiMessage: public GuiMessage {
     Direction direction;
 public:
-    explicit MoveGuiMessage(Bytes &bytes) : direction((Direction) bytes.get_next_byte()) {} // TODO
+    explicit MoveGuiMessage(Bytes &bytes) : direction(get_direction(bytes)) {}
 
     void execute([[maybe_unused]] GameState &game_state, SocketsInfo &sockets_info) override {
         std::cout << "Move sent:" << (int) direction << std::endl;

@@ -7,7 +7,7 @@ class DrawMessage: public Serializable {
 private:
     virtual char get_identifier() const = 0;
 public:
-    void send(const gui_socket_t &socket, const boost::asio::ip::udp::endpoint &endpoint) const {
+    void send(const gui_socket_t &socket, const udp::endpoint &endpoint) const {
         Bytes message = serialize();
         socket->send_to(boost::asio::buffer(message.get_vector()), endpoint);
     }

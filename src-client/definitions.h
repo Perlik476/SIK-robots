@@ -381,6 +381,8 @@ enum Direction: char {
     Undefined
 };
 
+Direction get_direction(Bytes &bytes);
+
 class Position: public Serializable {
     Coordinate x, y;
 public:
