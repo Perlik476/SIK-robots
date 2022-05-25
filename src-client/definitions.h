@@ -68,7 +68,6 @@ public:
 
     static std::pair<std::string, std::string> process_address(std::string &address) {
         int length = (int) address.length();
-        std::cout << length << "\n";
 
         std::string address_pure, port_str;
 
@@ -235,7 +234,7 @@ class BytesReceiver: public Bytes {
 
     void listen() {
         boost::array<char, 128> buffer{};
-        std::cout << "read_some" << std::endl;
+//        std::cout << "read_some" << std::endl;
         size_t size = socket->read_some(boost::asio::buffer(buffer));
         for (size_t i = 0; i < size; i++) {
             vector.push_back(buffer[i]);
@@ -733,7 +732,7 @@ public:
         auto it = scores.get_map().begin();
         while (it != scores.get_map().end()) {
             if (death_this_round[it->first]) {
-                std::cout << "PlayerId: " << (int) it->first.get_value() << " died.\n";
+//                std::cout << "PlayerId: " << (int) it->first.get_value() << " died.\n";
             }
             it->second += death_this_round[it->first];
             it++;
@@ -794,7 +793,8 @@ public:
         game_state.bombs.get_list().push_back(bomb);
         game_state.bombs_map[id] = bomb;
 //      TODO
-        std::cout << "BombPlaced\nid: " << id.get_value() << ", x: " << position.get_x().get_value() << ", y: " << position.get_y().get_value() << "\n";
+
+//        std::cout << "BombPlaced\nid: " << id.get_value() << ", x: " << position.get_x().get_value() << ", y: " << position.get_y().get_value() << "\n";
     }
 };
 
@@ -880,7 +880,7 @@ public:
     }
 
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
-        std::cout << "BombExploded!\n";
+//        std::cout << "BombExploded!\n";
         auto bomb_exploded = game_state.bombs_map[id];
         auto bomb_position = bomb_exploded->position;
 
@@ -909,7 +909,7 @@ public:
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         // TODO
         game_state.player_positions.get_map()[id] = Position(position.get_x().get_value(), position.get_y().get_value());
-        std::cout << "PlayerMoved: id: " << (int) id.get_value() << ", x: " << position.get_x().get_value() << ", y: " << position.get_y().get_value() << "\n";
+//        std::cout << "PlayerMoved: id: " << (int) id.get_value() << ", x: " << position.get_x().get_value() << ", y: " << position.get_y().get_value() << "\n";
     }
 };
 
@@ -923,7 +923,7 @@ public:
 
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
         game_state.blocks.get_list().push_back(position);
-        std::cout << "BlockPlaced: x: " << position.get_x().get_value() << ", y: " << position.get_y().get_value() << "\n";
+//        std::cout << "BlockPlaced: x: " << position.get_x().get_value() << ", y: " << position.get_y().get_value() << "\n";
         // TODO
     }
 };

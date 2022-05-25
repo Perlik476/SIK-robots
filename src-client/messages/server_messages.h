@@ -35,6 +35,8 @@ public:
     }
 
     void execute(GameState &game_state, SocketsInfo &sockets_info) override {
+//        std::cout << "Hello message received from server." << std::endl;
+
         game_state.server_name = server_name;
         game_state.players_count = players_count;
         game_state.size_x = size_x;
@@ -42,8 +44,7 @@ public:
         game_state.game_length = game_length;
         game_state.explosion_radius = explosion_radius;
         game_state.bomb_timer = bomb_timer;
-        std::cout << "Hello: " << server_name.get_string() << ": " << (int) players_count.get_value() << ", " << size_x.get_value() << "x" <<
-                  size_y.get_value() << ", " << game_length.get_value() << ", " << explosion_radius.get_value() << ", " << bomb_timer.get_value() << std::endl;
+
         LobbyMessage(game_state).send(sockets_info.get_gui_socket(), sockets_info.get_gui_endpoint());
     }
 };
@@ -56,8 +57,8 @@ public:
     explicit AcceptedPlayerMessage(Bytes &bytes) : id(PlayerId(bytes)), player(Player(bytes)) {}
 
     void execute(GameState &game_state, SocketsInfo &sockets_info) override {
+//        std::cout << "Accepted player message received from server." << std::endl;
         game_state.players.get_map()[id] = Player(player.get_name(), player.get_address());
-        std::cout << "AcceptedPlayer: " << id.get_value() << ": " << player.get_name().get_string() << ", " << player.get_address().get_string() << std::endl;
         LobbyMessage(game_state).send(sockets_info.get_gui_socket(), sockets_info.get_gui_endpoint());
     }
 };
@@ -69,11 +70,10 @@ public:
     explicit GameStartedMessage(Bytes &bytes) : players(players_t(bytes)) {}
 
     void execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) override {
+//        std::cout << "Game started message received from server." << std::endl;
         game_state.players = players;
-        std::cout << "GameStarted: \n";
         game_state.scores = players_scores_t();
         for (auto &[key, value] : game_state.players.get_map()) {
-            std::cout << (int) key.get_value() << ": name: " << value.get_name().get_string() << ", addr: " << value.get_address().get_string() << "\n";
             game_state.scores.get_map()[key] = Score(0);
         }
     }
@@ -88,9 +88,7 @@ public:
 
     void execute(GameState &game_state, SocketsInfo &sockets_info) override {
         // TODO
-        std::cout << "TurnMessage:\nturn: " << turn.get_value() << "\n";
-        std::cout << "list length: " << events.get_list().size() << "\n";
-
+//        std::cout << "Turn message received from server: turn = " << turn.get_value() << std::endl;
         for (auto &bomb : game_state.bombs.get_list()) {
             bomb->timer -= 1;
         }

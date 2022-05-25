@@ -54,11 +54,11 @@ void receive_from_gui(Arguments &arguments, GameState &game_state, SocketsInfo &
             return;
         }
 
-        std::cout << "packet (size = " << size << "): ";
-        for (size_t i = 0; i < size; i++) {
-            std::cout << (int) buffer[i] << " ";
-        }
-        std::cout << "\n";
+//        std::cout << "packet (size = " << size << "): ";
+//        for (size_t i = 0; i < size; i++) {
+//            std::cout << (int) buffer[i] << " ";
+//        }
+//        std::cout << "\n";
 
         if (size == 0) {
             continue;
@@ -86,7 +86,7 @@ void receive_from_gui(Arguments &arguments, GameState &game_state, SocketsInfo &
                     threads_info.set_should_exit();
                     return;
                 }
-                std::cout << "Join sent." << std::endl;
+//                std::cout << "Join sent." << std::endl;
                 game_state.is_joined = true;
             }
             else {
@@ -100,7 +100,7 @@ void receive_from_gui(Arguments &arguments, GameState &game_state, SocketsInfo &
                     threads_info.set_should_exit();
                     return;
                 }
-                std::cout << "message sent." << std::endl;
+//                std::cout << "message sent." << std::endl;
             }
         }
     }
@@ -137,7 +137,7 @@ void receive_from_server(GameState &game_state, SocketsInfo &sockets_info, Threa
                 threads_info.set_should_exit();
                 return;
             }
-            std::cout << "executing server message.\n";
+//            std::cout << "executing server message.\n";
             try {
                 message->execute(game_state, sockets_info);
             }
@@ -155,10 +155,10 @@ void receive_from_server(GameState &game_state, SocketsInfo &sockets_info, Threa
 int main(int argc, char *argv[]) {
 
     auto arguments = parse_arguments(argc, argv);
-    std::cout << "gui_address: " << arguments.gui_address << "\n"
-        << "server_address: " << arguments.server_address << "\n"
-        << "port: " << arguments.port << "\n"
-        << "player_name: " << arguments.player_name << "\n";
+//    std::cout << "gui_address: " << arguments.gui_address << "\n"
+//        << "server_address: " << arguments.server_address << "\n"
+//        << "port: " << arguments.port << "\n"
+//        << "player_name: " << arguments.player_name << "\n";
 
     if (!arguments.check_correctness()) {
         std::cerr << "Program arguments are invalid. Terminating." << std::endl;
