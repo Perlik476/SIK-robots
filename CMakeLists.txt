@@ -37,12 +37,17 @@ set (CMAKE_CXX_FLAGS_RELEASE "-O2")
 # Add executable client
 set (CLIENT_EXECUTABLE ${PROJECT_NAME}-client)
 add_executable (${CLIENT_EXECUTABLE}
-        src-client/main.cpp
+        src-client/main.cc
         src-client/definitions.h
         src-client/definitions.cc
         src-client/messages.h
         src-client/messages.cc
-        src-client/messages/client_messages.h src-client/messages/draw_messages.h src-client/messages/server_messages.h src-client/messages/gui_messages.h)
+        src-client/messages/client_messages.h
+        src-client/messages/draw_messages.h
+        src-client/messages/server_messages.h
+        src-client/messages/gui_messages.h
+        src-client/data_types/bytes.h
+        src-client/data_types/bytes.cc src-client/data_types/uint.h src-client/data_types/position.h src-client/data_types/string.h src-client/data_types/list.h src-client/data_types/set.h src-client/data_types/map.h src-client/data_types/player.h src-client/data_types/bomb.h src-client/data_types/game_state.h src-client/data_types/events.h src-client/data_types/sockets_info.h src-client/data_types/arguments.h src-client/data_types/threads_info.h src-client/data_types/usings.h src-client/data_types/events.cc)
 
 # Add executable server
 #set (SERVER_EXECUTABLE ${PROJECT_NAME}-server)
