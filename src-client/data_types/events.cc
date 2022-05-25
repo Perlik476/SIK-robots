@@ -57,13 +57,13 @@ void BombExplodedEvent::add_explosions(GameState &game_state, Position &bomb_pos
         bool do_continue = true;
 
         for (size_t r = 0; r < game_state.explosion_radius.get_value() && do_continue
-                           && current_position.is_next_proper(direction, game_state.size_x, game_state.size_y); r++) {
+                   && current_position.is_next_proper(direction, game_state.size_x, game_state.size_y); r++) {
 
             current_position = current_position.next(direction);
             game_state.explosions.get_set().insert(current_position);
 
-            for (auto &block : blocks_destroyed.get_list()) {
-                if (current_position == block) {
+            for (auto &block_position : blocks_destroyed.get_list()) {
+                if (current_position == block_position) {
                     do_continue = false;
                     break;
                 }
