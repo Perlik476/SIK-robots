@@ -77,18 +77,16 @@ public:
 
 class TurnMessage: public ServerMessage {
     Uint16 turn;
-    List<Event> events;
+    ExecutableList<Event> events;
 
 public:
-    explicit TurnMessage(Bytes &bytes) : turn(Uint16(bytes)), events(List<Event>(bytes)) {}
+    explicit TurnMessage(Bytes &bytes) : turn(Uint16(bytes)), events(ExecutableList<Event>(bytes)) {}
 
     void execute(GameState &game_state, SocketsInfo &sockets_info) override {
         game_state.prepare_for_turn();
 
         game_state.turn = turn.get_value();
-        for (auto &event : events.get_list()) {
-            event.execute(game_state, sockets_info);
-        }
+        events.execute(game_state, sockets_info);
 
         game_state.after_turn();
 

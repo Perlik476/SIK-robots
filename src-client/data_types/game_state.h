@@ -23,7 +23,7 @@ using players_t = Map<player_id_t, Player>;
 using players_positions_t = Map<player_id_t, Position>;
 using players_scores_t = Map<player_id_t, score_t>;
 using blocks_t = List<Position>;
-using bombs_t = PointersList<Bomb>;
+using bombs_t = PointerList<Bomb>;
 using explosions_t = Set<Position>;
 
 class GameState {
