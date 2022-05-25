@@ -697,7 +697,7 @@ using players_t = Map<PlayerId, Player>;
 using players_positions_t = Map<PlayerId, Position>;
 using players_scores_t = Map<PlayerId, Score>;
 using blocks_t = List<Position>;
-using bombs_t = List<Bomb>;
+using bombs_t = PointersList<Bomb>;
 
 class GameState {
 public:

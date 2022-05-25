@@ -1,4 +1,6 @@
 #include "messages.h"
+#include "messages/server_messages.h"
+#include "messages/gui_messages.h"
 
 std::shared_ptr<ServerMessage> get_server_message(Bytes &bytes) {
     char type = bytes.get_next_byte();
@@ -24,10 +26,6 @@ std::shared_ptr<ServerMessage> get_server_message(Bytes &bytes) {
             break;
     }
 }
-
-//std::shared_ptr<GuiMessage> get_gui_message(Bytes &&bytes) {
-//    get_gui_message(std::move(bytes));
-//}
 
 std::shared_ptr<GuiMessage> get_gui_message(Bytes &bytes) {
     char type = bytes.get_next_byte();

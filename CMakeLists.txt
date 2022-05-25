@@ -42,7 +42,7 @@ add_executable (${CLIENT_EXECUTABLE}
         src-client/definitions.cc
         src-client/messages.h
         src-client/messages.cc
-        )
+        src-client/messages/client_messages.h src-client/messages/draw_messages.h src-client/messages/server_messages.h src-client/messages/gui_messages.h)
 
 # Add executable server
 #set (SERVER_EXECUTABLE ${PROJECT_NAME}-server)
