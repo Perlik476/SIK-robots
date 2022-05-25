@@ -5,7 +5,7 @@
 #include "bytes.h"
 
 template<class T>
-concept isUint = std::is_integral_v<T>; // TODO
+concept isUint = std::is_same_v<uint8_t, T> || std::is_same_v<uint16_t, T> || std::is_same_v<uint32_t, T>;
 
 template<isUint T>
 class Uint: public Serializable {
