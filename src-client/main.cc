@@ -11,7 +11,7 @@
 
 namespace po = boost::program_options;
 
-static Arguments parse_arguments(int argc, char *argv[]) {
+static std::shared_ptr<Arguments> parse_arguments(int argc, char *argv[]) {
     std::string gui_address, player_name, server_address;
     uint16_t port;
 
@@ -32,7 +32,7 @@ static Arguments parse_arguments(int argc, char *argv[]) {
 
     po::notify(vm);
 
-    return {player_name, port, gui_address, server_address};
+    return std::make_shared<Arguments>(player_name, port, gui_address, server_address);
 }
 
 static bool try_receive_from_gui(Bytes &bytes, SocketsInfo &sockets_info, ThreadsInfo &threads_info) {
@@ -204,18 +204,25 @@ static void from_server_to_gui_communication(GameState &game_state, SocketsInfo 
 }
 
 int main(int argc, char *argv[]) {
-    auto arguments = parse_arguments(argc, argv);
-    if (!arguments.check_correctness()) {
+    std::shared_ptr<Arguments> arguments;
+    try {
+        arguments = parse_arguments(argc, argv);
+    }
+    catch (std::exception &exception) {
+        std::cerr << "Program arguments are invalid. Terminating." << std::endl;
+        return 1;
+    }
+    if (!arguments->check_correctness()) {
         std::cerr << "Program arguments are invalid. Terminating." << std::endl;
         return 1;
     }
 
-    auto game_state = GameState(arguments.player_name);
+    auto game_state = GameState(arguments->player_name);
 
     ThreadsInfo threads_info;
     std::shared_ptr<SocketsInfo> sockets_info;
     try {
-        sockets_info = std::make_shared<SocketsInfo>(arguments);
+        sockets_info = std::make_shared<SocketsInfo>(*arguments);
     }
     catch (std::exception &exception) {
         std::cerr << exception.what() << std::endl;

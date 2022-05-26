@@ -3,6 +3,13 @@
 
 #include "usings.h"
 
+class ArgumentsParsingFailed : public std::exception {
+public:
+    const char *what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_NOTHROW override {
+        return "Arguments parsing failed.";
+    }
+};
+
 class Arguments {
     static bool is_proper_string(std::string &s) {
         return s.length() < 256;
@@ -33,7 +40,7 @@ public:
                 break;
             }
             if (c < '0' || c > '9') {
-                exit(1);
+                throw ArgumentsParsingFailed();
             }
             port_str += c;
         }

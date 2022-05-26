@@ -17,17 +17,17 @@ public:
         try {
             gui_endpoint = *resolver.resolve(arguments.gui_address_pure, arguments.gui_port).begin();
         }
-        catch (std::exception &exception) {
+        catch (...) {
             std::cerr << "Resolving GUI address failed." << std::endl;
-            throw exception;
+            throw;
         }
 
         try {
             gui_socket = std::make_shared<udp::socket>(io_context, udp::endpoint(udp::v6(), arguments.port));
         }
-        catch (std::exception &exception) {
+        catch (...) {
             std::cerr << "Socket for GUI communications could not be opened." << std::endl;
-            throw exception;
+            throw;
         }
 
         tcp::resolver resolver_tcp(io_context);
@@ -35,9 +35,9 @@ public:
         try {
             endpoints = *resolver_tcp.resolve(arguments.server_address_pure, arguments.server_port);
         }
-        catch (std::exception &exception) {
+        catch (...) {
             std::cerr << "Resolving server address failed." << std::endl;
-            throw exception;
+            throw;
         }
 
         try {
@@ -46,9 +46,9 @@ public:
             tcp::no_delay option(true);
             server_socket->set_option(option);
         }
-        catch (std::exception &exception) {
+        catch (...) {
             std::cerr << "Connecting with server failed." << std::endl;
-            throw exception;
+            throw;
         }
     }
 
