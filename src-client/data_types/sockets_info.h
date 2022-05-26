@@ -1,7 +1,7 @@
 #ifndef ROBOTS_SOCKETS_INFO_H
 #define ROBOTS_SOCKETS_INFO_H
 
-#include "usings.h"
+#include "definitions.h"
 
 class SocketsInfo {
     boost::asio::io_context io_context;

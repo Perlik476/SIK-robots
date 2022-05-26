@@ -1,7 +1,7 @@
-#ifndef ROBOTS_DEFINITIONS_H
-#define ROBOTS_DEFINITIONS_H
+#ifndef ROBOTS_INCLUDES_H
+#define ROBOTS_INCLUDES_H
 
-#include "data_types/usings.h"
+#include "data_types/definitions.h"
 #include "data_types/arguments.h"
 #include "data_types/bomb.h"
 #include "data_types/bytes.h"
@@ -17,4 +17,4 @@
 #include "data_types/threads_info.h"
 #include "data_types/uint.h"
 
-#endif //ROBOTS_DEFINITIONS_H
+#endif //ROBOTS_INCLUDES_H

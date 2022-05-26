@@ -1,7 +1,7 @@
 #ifndef ROBOTS_GAME_STATE_H
 #define ROBOTS_GAME_STATE_H
 
-#include "usings.h"
+#include "definitions.h"
 #include "bytes.h"
 #include "uint.h"
 #include "string.h"

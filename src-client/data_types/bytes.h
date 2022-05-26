@@ -1,7 +1,7 @@
 #ifndef ROBOTS_BYTES_H
 #define ROBOTS_BYTES_H
 
-#include "usings.h"
+#include "definitions.h"
 
 class BytesDeserializationException : public std::exception {
 public:

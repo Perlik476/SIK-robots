@@ -1,5 +1,5 @@
 #include "definitions.h"
-#include "data_types/bytes.h"
+#include "bytes.h"
 
 Direction get_direction(Bytes &bytes) {
     char c = bytes.get_next_byte();

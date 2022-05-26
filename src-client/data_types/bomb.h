@@ -1,7 +1,7 @@
 #ifndef ROBOTS_BOMB_H
 #define ROBOTS_BOMB_H
 
-#include "usings.h"
+#include "definitions.h"
 #include "bytes.h"
 #include "uint.h"
 #include "position.h"

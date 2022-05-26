@@ -1,7 +1,7 @@
 #ifndef ROBOTS_THREADS_INFO_H
 #define ROBOTS_THREADS_INFO_H
 
-#include "usings.h"
+#include "definitions.h"
 
 class ThreadsInfo {
     std::mutex mutex;

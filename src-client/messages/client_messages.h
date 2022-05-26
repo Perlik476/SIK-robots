@@ -1,7 +1,7 @@
 #ifndef ROBOTS_CLIENT_MESSAGES_H
 #define ROBOTS_CLIENT_MESSAGES_H
 
-#include "../definitions.h"
+#include "../includes.h"
 
 class ClientMessage: public Serializable {
 private:

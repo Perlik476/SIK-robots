@@ -6,7 +6,7 @@
 #include <ranges>
 #include <thread>
 
-#include "definitions.h"
+#include "includes.h"
 #include "messages.h"
 
 namespace po = boost::program_options;
@@ -106,6 +106,10 @@ static bool try_send_to_server(std::shared_ptr<GuiMessage> &message, GameState &
 static void from_gui_to_server_communication(GameState &game_state, SocketsInfo &sockets_info,
                                       ThreadsInfo &threads_info) {
     for (;;) {
+        if (threads_info.get_should_exit()) {
+            return;
+        }
+
         Bytes bytes;
 
         if (!try_receive_from_gui(bytes, sockets_info, threads_info)) {
@@ -120,6 +124,10 @@ static void from_gui_to_server_communication(GameState &game_state, SocketsInfo 
             if (!threads_info.get_should_exit()) {
                 std::cerr << "Message received from GUI could not be deserialized." << std::endl;
             }
+        }
+
+        if (threads_info.get_should_exit()) {
+            return;
         }
 
         if (message != nullptr && bytes.is_end()) {
@@ -190,8 +198,16 @@ static bool try_process_message(GameState &game_state, BytesReceiver &bytes, Soc
 static void from_server_to_gui_communication(GameState &game_state, SocketsInfo &sockets_info,
                                              ThreadsInfo &threads_info) {
     for (;;) {
+        if (threads_info.get_should_exit()) {
+            return;
+        }
+
         BytesReceiver bytes;
         if (!try_create_bytes_receiver(bytes, sockets_info, threads_info)) {
+            return;
+        }
+
+        if (threads_info.get_should_exit()) {
             return;
         }
 

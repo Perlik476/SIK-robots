@@ -1,7 +1,7 @@
 #ifndef ROBOTS_GUI_MESSAGES_H
 #define ROBOTS_GUI_MESSAGES_H
 
-#include "../definitions.h"
+#include "../includes.h"
 #include "client_messages.h"
 
 enum GuiMessageType: char {

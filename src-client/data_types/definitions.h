@@ -1,5 +1,5 @@
-#ifndef ROBOTS_USINGS_H
-#define ROBOTS_USINGS_H
+#ifndef ROBOTS_DEFINITIONS_H
+#define ROBOTS_DEFINITIONS_H
 
 #include <vector>
 #include <string>
@@ -64,4 +64,4 @@ enum Direction: char {
 
 Direction get_direction(Bytes &bytes);
 
-#endif //ROBOTS_USINGS_H
+#endif //ROBOTS_DEFINITIONS_H

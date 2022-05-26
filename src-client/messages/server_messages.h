@@ -1,7 +1,7 @@
 #ifndef ROBOTS_SERVER_MESSAGES_H
 #define ROBOTS_SERVER_MESSAGES_H
 
-#include "../definitions.h"
+#include "../includes.h"
 #include "draw_messages.h"
 
 enum ServerMessageType: char {
