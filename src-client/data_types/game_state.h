@@ -27,7 +27,6 @@ using bombs_t = PointerList<Bomb>;
 using explosions_t = Set<Position>;
 
 class GameState {
-public:
     bool is_joined = false;
     std::string player_name;
 
@@ -47,6 +46,22 @@ public:
     explosions_t explosions;
     players_scores_t scores;
     std::map<player_id_t, bool> death_this_round;
+
+public:
+    // Messages from server.
+    friend class TurnMessage;
+    friend class GameStartedMessage;
+    friend class AcceptedPlayerMessage;
+    friend class HelloMessage;
+    friend class GameEndedMessage;
+
+    // Events from TurnMessage.
+    friend class BombPlacedEvent;
+    friend class BombExplodedEvent;
+    friend class PlayerMovedEvent;
+    friend class BlockPlacedEvent;
+
+    GameState(std::string &player_name) : player_name(player_name) {}
 
     void prepare_for_turn() {
         explosions = Set<Position>();
@@ -78,6 +93,25 @@ public:
         scores.get_map().clear();
         death_this_round.clear();
     }
+
+    void set_is_joined(bool value) { is_joined = value; }
+
+    bool get_is_joined() const { return is_joined; }
+    auto &get_player_name() const { return player_name; }
+    auto &get_server_name() const { return server_name; }
+    auto &get_players_count() const { return players_count; }
+    auto &get_size_x() const { return size_x; }
+    auto &get_size_y() const { return size_y; }
+    auto &get_game_length() const { return game_length; }
+    auto &get_explosion_radius() const { return explosion_radius; }
+    auto &get_bomb_timer() const { return bomb_timer; }
+    auto &get_players() const { return players; }
+    auto &get_turn() const { return turn; }
+    auto &get_player_positions() const { return player_positions; }
+    auto &get_blocks() const { return blocks; }
+    auto &get_bombs() const { return bombs; }
+    auto &get_explosions() const { return explosions; }
+    auto &get_scores() const { return scores; }
 };
 
 #endif //ROBOTS_GAME_STATE_H

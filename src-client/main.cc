@@ -70,9 +70,9 @@ static bool try_receive_from_gui(Bytes &bytes, SocketsInfo &sockets_info, Thread
 
 static bool try_send_to_server(std::shared_ptr<GuiMessage> &message, GameState &game_state,
                         SocketsInfo &sockets_info, ThreadsInfo &threads_info) {
-    if (!game_state.is_joined) {
+    if (!game_state.get_is_joined()) {
         try {
-            JoinMessage(game_state.player_name).send(sockets_info.get_server_socket());
+            JoinMessage(game_state.get_player_name()).send(sockets_info.get_server_socket());
         }
         catch (std::exception &exception) {
             if (!threads_info.get_should_exit()) {
@@ -83,7 +83,7 @@ static bool try_send_to_server(std::shared_ptr<GuiMessage> &message, GameState &
             threads_info.set_should_exit();
             return false;
         }
-        game_state.is_joined = true;
+        game_state.set_is_joined(true);
     }
     else {
         try {
@@ -210,8 +210,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    auto game_state = GameState();
-    game_state.player_name = arguments.player_name;
+    auto game_state = GameState(arguments.player_name);
 
     ThreadsInfo threads_info;
     std::shared_ptr<SocketsInfo> sockets_info;

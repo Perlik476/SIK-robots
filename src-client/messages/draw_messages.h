@@ -25,14 +25,14 @@ public:
 
     Bytes serialize() const override {
         return Uint8(static_cast<uint8_t>(get_identifier())).serialize()
-               + game_state.server_name.serialize()
-               + game_state.players_count.serialize()
-               + game_state.size_x.serialize()
-               + game_state.size_y.serialize()
-               + game_state.game_length.serialize()
-               + game_state.explosion_radius.serialize()
-               + game_state.bomb_timer.serialize()
-               + game_state.players.serialize();
+               + game_state.get_server_name().serialize()
+               + game_state.get_players_count().serialize()
+               + game_state.get_size_x().serialize()
+               + game_state.get_size_y().serialize()
+               + game_state.get_game_length().serialize()
+               + game_state.get_explosion_radius().serialize()
+               + game_state.get_bomb_timer().serialize()
+               + game_state.get_players().serialize();
     }
 };
 
@@ -48,17 +48,17 @@ public:
 
     Bytes serialize() const override {
         return Uint8(static_cast<uint8_t>(get_identifier())).serialize()
-               + game_state.server_name.serialize()
-               + game_state.size_x.serialize()
-               + game_state.size_y.serialize()
-               + game_state.game_length.serialize()
-               + game_state.turn.serialize()
-               + game_state.players.serialize()
-               + game_state.player_positions.serialize()
-               + game_state.blocks.serialize()
-               + game_state.bombs.serialize()
-               + game_state.explosions.serialize()
-               + game_state.scores.serialize();
+               + game_state.get_server_name().serialize()
+               + game_state.get_size_x().serialize()
+               + game_state.get_size_y().serialize()
+               + game_state.get_game_length().serialize()
+               + game_state.get_turn().serialize()
+               + game_state.get_players().serialize()
+               + game_state.get_player_positions().serialize()
+               + game_state.get_blocks().serialize()
+               + game_state.get_bombs().serialize()
+               + game_state.get_explosions().serialize()
+               + game_state.get_scores().serialize();
     }
 };
 
