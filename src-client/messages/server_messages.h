@@ -83,7 +83,7 @@ public:
     explicit TurnMessage(Bytes &bytes) : turn(Uint16(bytes)), events(ExecutableList<Event>(bytes)) {}
 
     void execute(GameState &game_state, SocketsInfo &sockets_info) override {
-        game_state.prepare_for_turn();
+        game_state.before_turn();
 
         game_state.turn = turn.get_value();
         events.execute(game_state, sockets_info);

@@ -63,7 +63,7 @@ public:
 
     GameState(std::string &player_name) : player_name(player_name) {}
 
-    void prepare_for_turn() {
+    void before_turn() {
         explosions = Set<Position>();
         death_this_round.clear();
         for (auto [player_id, _] : scores.get_map()) {
