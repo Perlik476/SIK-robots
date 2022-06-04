@@ -226,6 +226,7 @@ int main(int argc, char *argv[]) {
     }
     catch (std::exception &exception) {
         std::cerr << "Program arguments are invalid. Terminating." << std::endl;
+        std::cerr << exception.what() << std::endl;
         return 1;
     }
     if (!arguments->check_correctness()) {
