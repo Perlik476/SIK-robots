@@ -12,7 +12,7 @@ cmake_host_system_information(RESULT _host_name QUERY HOSTNAME)
 if (${_host_name} STREQUAL "students")
     set (LD_LIBRARY_PATH "/opt/gcc-11.2/lib64")
     set (CMAKE_CXX_COMPILER "/opt/gcc-11.2/bin/g++-11.2")
-    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,/opt/gcc-11.2/lib64")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,/opt/gcc-11.2/lib64")
 
 else ()
     set (LD_LIBRARY_PATH "/home/matt/.GCC-11.2/lib64")
@@ -20,7 +20,7 @@ else ()
 endif()
 
 set (CMAKE_CXX_STANDARD 20)
-set (CMAKE_CXX_FLAGS "-Wall -Wextra -Wconversion -Werror -pthread -std=gnu++20")
+set (CMAKE_CXX_FLAGS "-Wall -Wextra -Wconversion -pthread -std=gnu++20")
 set (CMAKE_CXX_FLAGS_DEBUG "-g")
 set (CMAKE_CXX_FLAGS_RELEASE "-O2")
 
@@ -53,7 +53,35 @@ add_executable (${CLIENT_EXECUTABLE}
         src-client/data_types/definitions.h
         src-client/data_types/events.cc)
 
+set (SERVER_EXECUTABLE ${PROJECT_NAME}-server)
+add_executable(${SERVER_EXECUTABLE}
+        src-server/main.cc
+        src-server/includes.h
+        src-server/data_types/definitions.cc
+        src-server/messages.h
+        src-server/messages.cc
+        src-server/messages/client_messages.h
+        src-server/messages/server_messages.h
+        src-server/data_types/bytes.h
+        src-server/data_types/bytes.cc
+        src-server/data_types/uint.h
+        src-server/data_types/position.h
+        src-server/data_types/string.h
+        src-server/data_types/list.h
+        src-server/data_types/set.h
+        src-server/data_types/map.h
+        src-server/data_types/player.h
+        src-server/data_types/bomb.h
+        src-server/data_types/game_state.h
+        src-server/data_types/events.h
+        src-server/data_types/sockets_info.h
+        src-server/data_types/arguments.h
+        src-server/data_types/threads_info.h
+        src-server/data_types/definitions.h
+        src-server/data_types/events.cc src-server/data_types/arguments.cc)
+
 find_package(Boost 1.71 COMPONENTS program_options REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
 target_link_libraries(${CLIENT_EXECUTABLE} LINK_PUBLIC ${Boost_LIBRARIES})
+target_link_libraries(${SERVER_EXECUTABLE} LINK_PUBLIC ${Boost_LIBRARIES})
