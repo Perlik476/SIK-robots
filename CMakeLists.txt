@@ -78,7 +78,10 @@ add_executable(${SERVER_EXECUTABLE}
         src-server/data_types/arguments.h
         src-server/data_types/threads_info.h
         src-server/data_types/definitions.h
-        src-server/data_types/events.cc src-server/data_types/arguments.cc)
+        src-server/data_types/events.cc
+        src-server/data_types/arguments.cc
+        src-server/data_types/usings.h
+        src-server/data_types/game_state.cc)
 
 find_package(Boost 1.71 COMPONENTS program_options REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})

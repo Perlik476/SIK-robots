@@ -12,25 +12,22 @@
 #include "position.h"
 #include "bomb.h"
 #include "arguments.h"
+#include "usings.h"
 
+class ServerMessage;
 class ClientMessage;
-
-using score_t = Uint32;
-using players_count_t = Uint8;
-using game_length_t = Uint16;
-using explosion_radius_t = Uint16;
-using bomb_timer_t = Uint16;
-using turn_t = Uint16;
-
-using players_t = Map<player_id_t, Player>;
-using players_positions_t = Map<player_id_t, Position>;
-using players_scores_t = Map<player_id_t, score_t>;
-using blocks_t = List<Position>;
-using bombs_t = PointerList<Bomb>;
-using explosions_t = Set<Position>;
 
 class GameState {
     bool is_started = false;
+    uint8_t next_player_id = 0;
+
+    std::atomic_bool is_sending = false;
+    std::mutex mutex;
+    std::condition_variable sending_condition;
+    std::condition_variable sending_ended;
+    std::atomic_int how_many_to_send = 0;
+
+    std::set<uint8_t> accepted_players_to_send;
 
     uint16_t initial_blocks;
     uint32_t seed;
@@ -56,19 +53,6 @@ class GameState {
     std::map<player_id_t, std::shared_ptr<ClientMessage>> players_action;
 
 public:
-    // Messages from server.
-    friend class TurnMessage;
-    friend class GameStartedMessage;
-    friend class AcceptedPlayerMessage;
-    friend class HelloMessage;
-    friend class GameEndedMessage;
-
-    // Events from TurnMessage.
-    friend class BombPlacedEvent;
-    friend class BombExplodedEvent;
-    friend class PlayerMovedEvent;
-    friend class BlockPlacedEvent;
-
     GameState(std::shared_ptr<Arguments> &arguments) : server_name(arguments->server_name),
         players_count(arguments->players_count), size_x(arguments->size_x), size_y(arguments->size_y),
         game_length(arguments->game_length), explosion_radius(arguments->explosion_radius),
@@ -77,6 +61,16 @@ public:
 
     void set_action(player_id_t &player_id, std::shared_ptr<ClientMessage> &client_message) {
         players_action[player_id] = client_message;
+    }
+
+    void try_add_player(const String &player_name, const String &address) {
+        if (players.get_map().size() == players_count.get_value()) {
+            return;
+        }
+
+        players.get_map()[next_player_id] = Player(player_name, address);
+        accepted_players_to_send.insert(next_player_id);
+        next_player_id++;
     }
 
     void before_turn() {
@@ -110,6 +104,10 @@ public:
         death_this_round.clear();
     }
 
+    void send_next();
+
+    std::vector<std::shared_ptr<ServerMessage>> get_messages();
+
     auto &get_server_name() const { return server_name; }
     auto &get_players_count() const { return players_count; }
     auto &get_size_x() const { return size_x; }
@@ -124,6 +122,7 @@ public:
     auto &get_bombs() const { return bombs; }
     auto &get_explosions() const { return explosions; }
     auto &get_scores() const { return scores; }
+    auto &get_turn_duration() const { return turn_duration; }
 };
 
 #endif //ROBOTS_GAME_STATE_H

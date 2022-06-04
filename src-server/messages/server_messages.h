@@ -40,8 +40,26 @@ public:
         bomb_timer(game_state->get_bomb_timer()) {}
 
     Bytes serialize() const override {
+        std::cout << "Hello" << std::endl;
         return Bytes(get_identifier()) + server_name.serialize() + players_count.serialize() + size_x.serialize()
             + size_y.serialize() + game_length.serialize() + explosion_radius.serialize() + bomb_timer.serialize();
+    }
+};
+
+
+class AcceptedPlayerMessage : public ServerMessage {
+    char get_identifier() const override {
+        return 1;
+    }
+
+    player_id_t id;
+    Player player;
+public:
+    AcceptedPlayerMessage(player_id_t &id, Player &player) : id(id), player(player) {}
+
+    Bytes serialize() const override {
+        std::cout << "AcceptedPlayer:" << player.get_name().get_string() << " " << player.get_address().get_string() << std::endl;
+        return Bytes(get_identifier()) + id.serialize() + player.serialize();
     }
 };
 

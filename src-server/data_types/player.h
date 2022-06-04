@@ -22,9 +22,9 @@ public:
         address = String(bytes);
     }
 
-    String get_name() { return name; }
+    String get_name() const { return name; }
 
-    String get_address() { return address; }
+    String get_address() const { return address; }
 
     Bytes serialize() const override {
         return name.serialize() + address.serialize();

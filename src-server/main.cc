@@ -33,9 +33,12 @@ public:
     socket_t &get_socket() { return socket; }
 };
 
-void sender_fun(socket_t socket) {
+void sender_fun(socket_t socket, std::shared_ptr<GameState> &game_state) {
     for (;;) {
-
+        auto messages = game_state->get_messages();
+        for (auto &message : messages) {
+            message->send(socket);
+        }
     }
 }
 
@@ -43,34 +46,39 @@ void receiver_fun(socket_t socket, std::shared_ptr<GameState> &game_state) {
     for (;;) {
         BytesReceiver bytes(socket);
         while (!bytes.is_end()) {
-            std::cout << "bytes" << std::endl;
             auto message = get_client_message(bytes);
             message->execute(game_state, socket);
-            std::cout << "done" << std::endl;
         }
     }
 }
 
-void acceptor_fun(std::shared_ptr<Arguments> &arguments, std::shared_ptr<GameState> &game_state) {
-    boost::asio::io_context io_context;
+void acceptor_fun(std::shared_ptr<Arguments> &arguments, std::shared_ptr<GameState> &game_state,
+                  boost::asio::io_context &io_context) {
     tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v6(), arguments->get_port()));
 
     threads_t senders = std::make_shared<std::set<thread_t>>();
     threads_t receivers = std::make_shared<std::set<thread_t>>();
 
+    uint8_t current_connections = 0;
+    const uint8_t max_connections = 25;
     for (;;) {
-        auto socket = std::make_shared<tcp::socket>(io_context);
-        acceptor.accept(*socket);
+        if (current_connections < max_connections) {
+            auto socket = std::make_shared<tcp::socket>(io_context);
+            acceptor.accept(*socket);
 
-        std::cout << "Accepted" << std::endl;
+            current_connections++;
 
-        auto sender_thread = std::make_shared<std::thread>(sender_fun, socket);
-        auto receiver_thread = std::make_shared<std::thread>(receiver_fun, socket, std::ref(game_state));
+            std::cout << "Accepted" << std::endl;
 
-        senders->insert(sender_thread);
-        receivers->insert(receiver_thread);
+            auto sender_thread = std::make_shared<std::thread>(sender_fun, socket, std::ref(game_state));
+            auto receiver_thread = std::make_shared<std::thread>(receiver_fun, socket, std::ref(game_state));
 
-        std::cout << "senders: " << senders->size() << " | receivers: " << receivers->size() << std::endl;
+            senders->insert(sender_thread);
+            receivers->insert(receiver_thread);
+
+            std::cout << "connections: " << current_connections << " | senders: " << senders->size()
+                << " | receivers: " << receivers->size() << std::endl;
+        }
     }
 
     for (auto &sender : *senders) {
@@ -78,6 +86,14 @@ void acceptor_fun(std::shared_ptr<Arguments> &arguments, std::shared_ptr<GameSta
     }
     for (auto &receiver : *receivers) {
         receiver->join();
+    }
+}
+
+void main_loop(std::shared_ptr<GameState> &game_state, boost::asio::io_context &io_context) {
+    for (;;) {
+        boost::asio::steady_timer timer(io_context, boost::asio::chrono::milliseconds(game_state->get_turn_duration()));
+        timer.wait();
+        game_state->send_next();
     }
 }
 
@@ -99,8 +115,10 @@ int main(int argc, char *argv[]) {
     std::cout << "OK\n";
 
     auto game_state = std::make_shared<GameState>(arguments);
+    boost::asio::io_context io_context;
 
-    std::thread acceptor_thread{acceptor_fun, std::ref(arguments), std::ref(game_state)};
+    std::thread main_thread{main_loop, std::ref(game_state), std::ref(io_context)};
+    std::thread acceptor_thread{acceptor_fun, std::ref(arguments), std::ref(game_state), std::ref(io_context)};
 
     acceptor_thread.join();
 

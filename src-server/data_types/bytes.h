@@ -67,15 +67,10 @@ class BytesReceiver: public Bytes {
 
     void listen() {
         boost::array<char, 128> buffer{};
-        try {
-            size_t size = socket->read_some(boost::asio::buffer(buffer));
-            for (size_t i = 0; i < size; i++) {
-                vector.push_back(buffer[i]);
-            }
-        } catch(...) {
-            std::cout << "oopsie" << std::endl;
+        size_t size = socket->read_some(boost::asio::buffer(buffer));
+        for (size_t i = 0; i < size; i++) {
+            vector.push_back(buffer[i]);
         }
-
     }
 public:
     BytesReceiver() = default;

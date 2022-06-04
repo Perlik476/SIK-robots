@@ -22,6 +22,10 @@ public:
 
     void execute(std::shared_ptr<GameState> &game_state, socket_t &socket) override {
         std::cout << "Join: " << name.get_string() << std::endl;
+        auto endpoint = socket->remote_endpoint();
+        std::stringstream ss;
+        ss << "[" << endpoint.address().to_string() << "]:" << endpoint.port();
+        game_state->try_add_player(name, String(ss.str()));
         HelloMessage(game_state).send(socket);
     }
 };

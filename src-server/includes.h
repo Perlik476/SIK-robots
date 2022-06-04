@@ -16,5 +16,6 @@
 #include "data_types/string.h"
 #include "data_types/threads_info.h"
 #include "data_types/uint.h"
+#include "data_types/usings.h"
 
 #endif //ROBOTS_INCLUDES_H
