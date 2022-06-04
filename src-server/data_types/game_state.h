@@ -11,6 +11,7 @@
 #include "player.h"
 #include "position.h"
 #include "bomb.h"
+#include "arguments.h"
 
 using score_t = Uint32;
 using players_count_t = Uint8;
@@ -27,8 +28,11 @@ using bombs_t = PointerList<Bomb>;
 using explosions_t = Set<Position>;
 
 class GameState {
-    bool is_joined = false;
-    std::string player_name;
+    bool is_started = false;
+
+    uint16_t initial_blocks;
+    uint32_t seed;
+    uint64_t turn_duration;
 
     String server_name;
     players_count_t players_count;
@@ -61,7 +65,11 @@ public:
     friend class PlayerMovedEvent;
     friend class BlockPlacedEvent;
 
-    GameState(std::string &player_name) : player_name(player_name) {}
+    GameState(std::shared_ptr<Arguments> &arguments) : server_name(arguments->server_name),
+        players_count(arguments->players_count), size_x(arguments->size_x), size_y(arguments->size_y),
+        game_length(arguments->game_length), explosion_radius(arguments->explosion_radius),
+        bomb_timer(arguments->bomb_timer), initial_blocks(arguments->initial_blocks), seed(arguments->seed),
+        turn_duration(arguments->turn_duration) {}
 
     void before_turn() {
         explosions = Set<Position>();
@@ -94,10 +102,6 @@ public:
         death_this_round.clear();
     }
 
-    void set_is_joined(bool value) { is_joined = value; }
-
-    bool get_is_joined() const { return is_joined; }
-    auto &get_player_name() const { return player_name; }
     auto &get_server_name() const { return server_name; }
     auto &get_players_count() const { return players_count; }
     auto &get_size_x() const { return size_x; }

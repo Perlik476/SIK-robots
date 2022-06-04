@@ -75,33 +75,4 @@ public:
 };
 
 
-template<class T>
-requires isExecutable<T>
-class ExecutableList: public Executable {
-    std::vector<T> list;
-public:
-    ExecutableList() = default;
-
-    explicit ExecutableList(Bytes &bytes) {
-        Uint32 length = Uint32(bytes);
-        for (size_t i = 0; i < length.get_value(); i++) {
-            list.push_back(T(bytes));
-        }
-    }
-
-    void execute(GameState &game_state, SocketsInfo &sockets_info) override {
-        for (T &element : list) {
-            element.execute(game_state, sockets_info);
-        }
-    }
-
-    auto &get_list() {
-        return list;
-    }
-
-    auto &get_list() const {
-        return list;
-    }
-};
-
 #endif //ROBOTS_LIST_H

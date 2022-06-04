@@ -7,7 +7,7 @@ class SocketsInfo {
     boost::asio::io_context io_context;
     gui_socket_t gui_socket;
     gui_endpoint_t gui_endpoint;
-    server_socket_t server_socket;
+    socket_t server_socket;
 
 public:
     SocketsInfo() = default;

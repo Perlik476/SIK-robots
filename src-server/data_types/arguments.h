@@ -24,6 +24,7 @@ class Arguments {
     void parse_arguments(int argc, char *argv[]);
 
 public:
+    // TODO
     static std::pair<std::string, std::string> process_address(std::string &address) {
         int length = (int) address.length();
 
@@ -52,15 +53,13 @@ public:
     }
 
 public:
+    friend class GameState;
+
     Arguments(int argc, char *argv[]) {
         parse_arguments(argc, argv);
     }
-//    Arguments(std::string server_name, uint8_t players_count, uint16_t port, uint16_t bomb_timer,
-//              uint16_t explosion_radius, uint16_t initial_blocks, uint16_t game_length,
-//              uint16_t size_x, uint16_t size_y, uint32_t seed, uint64_t turn_duration)
-//              : server_name(server_name), players_count(players_count), port(port), bomb_timer(bomb_timer),
-//              explosion_radius(explosion_radius), initial_blocks(initial_blocks), game_length(game_length),
-//              size_x(size_x), size_y(size_y), seed(seed), turn_duration(turn_duration) {}
+
+    uint16_t get_port() { return port; }
 };
 
 #endif //ROBOTS_ARGUMENTS_H

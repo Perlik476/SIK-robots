@@ -9,188 +9,72 @@
 #include "includes.h"
 #include "messages.h"
 
+using thread_t = std::shared_ptr<std::thread>;
+using threads_t = std::shared_ptr<std::set<thread_t>>;
 
-static bool try_receive_from_gui(Bytes &bytes, SocketsInfo &sockets_info, ThreadsInfo &threads_info) {
-    boost::array<char, 3> buffer{};
-    udp::endpoint endpoint;
-    size_t size;
-    try {
-        size = sockets_info.get_gui_socket()->receive_from(boost::asio::buffer(buffer), endpoint);
-    }
-    catch (std::exception &exception) {
-        if (!threads_info.get_should_exit()) {
-            std::cerr << "Receiving from GUI failed: " << exception.what() << "Terminating." << std::endl;
-        }
+class ThreadInfo {
+    threads_t senders;
+    threads_t receivers;
+    thread_t sender;
+    thread_t receiver;
+    socket_t socket;
 
-        std::unique_lock lock(threads_info.get_mutex());
-        threads_info.set_should_exit();
-        return false;
-    }
+public:
+    ThreadInfo(threads_t &senders, threads_t &receivers, thread_t &sender, thread_t &receiver, socket_t &socket)
+        : senders(senders), receivers(receivers), sender(sender), receiver(receiver), socket(socket) {}
 
-    if (size == 0) {
-        return true;
-    }
+    void end_threads() {
+        senders->erase(sender);
+        receivers->erase(receiver);
 
-    try {
-        bytes = Bytes(get_c_array(buffer), size);
-    }
-    catch (std::exception &exception) {
-        if (!threads_info.get_should_exit()) {
-            std::cerr << "Message received from GUI could not be deserialized." << std::endl;
-        }
+        socket->close();
     }
 
-    return true;
+    socket_t &get_socket() { return socket; }
+};
+
+void sender_fun(socket_t &socket) {
+    for (int i = 0; i < 100000; i++) {
+
+    }
 }
 
-//static bool try_send_to_server(std::shared_ptr<GuiMessage> &message, GameState &game_state,
-//                               SocketsInfo &sockets_info, ThreadsInfo &threads_info) {
-//    if (!game_state.get_is_joined()) {
-//        try {
-//            JoinMessage(game_state.get_player_name()).send(sockets_info.get_server_socket());
-//        }
-//        catch (std::exception &exception) {
-//            if (!threads_info.get_should_exit()) {
-//                std::cerr << "Sending Join message to server failed. Terminating." << std::endl;
-//                std::cerr << exception.what() << std::endl;
-//            }
-//            std::unique_lock lock(threads_info.get_mutex());
-//            threads_info.set_should_exit();
-//            return false;
-//        }
-//        game_state.set_is_joined(true);
-//    }
-//    else {
-//        try {
-//            message->execute(game_state, sockets_info);
-//        }
-//        catch (std::exception &exception) {
-//            if (!threads_info.get_should_exit()) {
-//                std::cerr << "Sending message to server failed. Terminating." << std::endl;
-//                std::cerr << exception.what() << std::endl;
-//            }
-//            std::unique_lock lock(threads_info.get_mutex());
-//            threads_info.set_should_exit();
-//            return false;
-//        }
-//    }
-//
-//    return true;
-//}
-
-//static void from_gui_to_server_communication(GameState &game_state, SocketsInfo &sockets_info,
-//                                             ThreadsInfo &threads_info) {
-//    for (;;) {
-//        if (threads_info.get_should_exit()) {
-//            return;
-//        }
-//
-//        Bytes bytes;
-//
-//        if (!try_receive_from_gui(bytes, sockets_info, threads_info)) {
-//            return;
-//        }
-//
-//        std::shared_ptr<GuiMessage> message;
-//        try {
-//            message = get_gui_message(bytes);
-//        }
-//        catch (std::exception &exception) {
-//            if (!threads_info.get_should_exit()) {
-//                std::cerr << "Message received from GUI could not be deserialized." << std::endl;
-//            }
-//        }
-//
-//        if (threads_info.get_should_exit()) {
-//            return;
-//        }
-//
-//        if (message != nullptr && bytes.is_end()) {
-//            if (!try_send_to_server(message, game_state, sockets_info, threads_info)) {
-//                return;
-//            }
-//        }
-//    }
-//}
-
-static bool try_create_bytes_receiver(BytesReceiver &bytes, SocketsInfo &sockets_info, ThreadsInfo &threads_info) {
-    try {
-        bytes = BytesReceiver(sockets_info.get_server_socket());
-    }
-    catch (std::exception &exception) {
-        if (!threads_info.get_should_exit()) {
-            std::cerr << "Receiving message from server failed. Terminating." << std::endl;
-            std::cerr << exception.what() << std::endl;
-        }
-        std::unique_lock lock(threads_info.get_mutex());
-        threads_info.set_should_exit();
-        return false;
-    }
-    return true;
-}
-
-static bool try_process_message(GameState &game_state, BytesReceiver &bytes, SocketsInfo &sockets_info,
-                                ThreadsInfo &threads_info) {
-    std::shared_ptr<ServerMessage> message;
-
-    try {
-        message = get_server_message(bytes);
-    }
-    catch (std::exception &exception) {
-        if (!threads_info.get_should_exit()) {
-            std::cerr << "Receiving message from server failed. Terminating." << std::endl;
-            std::cerr << exception.what() << std::endl;
-        }
-        std::unique_lock lock(threads_info.get_mutex());
-        threads_info.set_should_exit();
-        return false;
-    }
-    if (message == nullptr) {
-        if (!threads_info.get_should_exit()) {
-            std::cerr << "Message received from server could not be deserialized. Terminating." << std::endl;
-        }
-        std::unique_lock lock(threads_info.get_mutex());
-        threads_info.set_should_exit();
-        return false;
-    }
-    try {
-        message->execute(game_state, sockets_info);
-    }
-    catch (std::exception &exception) {
-        if (!threads_info.get_should_exit()) {
-            std::cerr << "Sending message to gui failed. Terminating." << std::endl;
-            std::cerr << exception.what() << std::endl;
-        }
-        std::unique_lock lock(threads_info.get_mutex());
-        threads_info.set_should_exit();
-        return false;
-    }
-
-    return true;
-}
-
-
-static void from_server_to_gui_communication(GameState &game_state, SocketsInfo &sockets_info,
-                                             ThreadsInfo &threads_info) {
+void receiver_fun(socket_t &socket) {
     for (;;) {
-        if (threads_info.get_should_exit()) {
-            return;
-        }
-
-        BytesReceiver bytes;
-        if (!try_create_bytes_receiver(bytes, sockets_info, threads_info)) {
-            return;
-        }
-
-        if (threads_info.get_should_exit()) {
-            return;
-        }
-
+        BytesReceiver bytes(socket);
         while (!bytes.is_end()) {
-            if (!try_process_message(game_state, bytes, sockets_info, threads_info)) {
-                return;
-            }
+            bytes.get_next_byte();
         }
+    }
+}
+
+void acceptor_fun(std::shared_ptr<Arguments> &arguments) {
+    boost::asio::io_context io_context;
+    tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v6(), arguments->get_port()));
+
+    threads_t senders = std::make_shared<std::set<thread_t>>();
+    threads_t receivers = std::make_shared<std::set<thread_t>>();
+
+    for (;;) {
+        auto socket = std::make_shared<tcp::socket>(io_context);
+        acceptor.accept(*socket);
+
+        std::cout << "Accepted" << std::endl;
+
+        auto sender_thread = std::make_shared<std::thread>(sender_fun, std::ref(socket));
+        auto receiver_thread = std::make_shared<std::thread>(receiver_fun, std::ref(socket));
+
+        senders->insert(sender_thread);
+        receivers->insert(receiver_thread);
+
+        std::cout << "senders: " << senders->size() << " | receivers: " << receivers->size() << std::endl;
+    }
+
+    for (auto &sender : *senders) {
+        sender->join();
+    }
+    for (auto &receiver : *receivers) {
+        receiver->join();
     }
 }
 
@@ -211,7 +95,11 @@ int main(int argc, char *argv[]) {
 
     std::cout << "OK\n";
 
-//    auto game_state = GameState(arguments->player_name);
+    std::thread acceptor_thread{acceptor_fun, std::ref(arguments)};
+
+    acceptor_thread.join();
+
+    auto game_state = std::make_shared<GameState>(arguments);
 
 //    ThreadsInfo threads_info;
 //    std::shared_ptr<SocketsInfo> sockets_info;

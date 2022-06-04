@@ -7,7 +7,7 @@ class ClientMessage: public Serializable {
 private:
     virtual char get_identifier() const = 0;
 public:
-    void send(const server_socket_t &socket) const {
+    void send(const socket_t &socket) const {
         Bytes message = serialize();
         socket->send(boost::asio::buffer(message.get_vector()));
     }

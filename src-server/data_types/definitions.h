@@ -23,7 +23,7 @@
 using bytes_t = char *;
 using udp = boost::asio::ip::udp;
 using tcp = boost::asio::ip::tcp;
-using server_socket_t = std::shared_ptr<tcp::socket>;
+using socket_t = std::shared_ptr<tcp::socket>;
 using gui_socket_t = std::shared_ptr<udp::socket>;
 using gui_endpoint_t = udp::endpoint;
 
@@ -45,8 +45,7 @@ class Executable {
 public:
     virtual ~Executable() = default;
 
-    virtual void execute([[maybe_unused]] GameState &game_state,
-                         [[maybe_unused]] SocketsInfo &sockets_info) = 0;
+    virtual void execute([[maybe_unused]] GameState &game_state) = 0;
 };
 
 template<class T>

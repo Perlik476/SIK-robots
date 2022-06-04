@@ -20,6 +20,6 @@ class GuiMessage;
 
 std::shared_ptr<ServerMessage> get_server_message(Bytes &bytes);
 
-std::shared_ptr<GuiMessage> get_gui_message(Bytes &bytes);\
+std::shared_ptr<GuiMessage> get_gui_message(Bytes &bytes);
 
 #endif // ROBOTS_MESSAGES_H

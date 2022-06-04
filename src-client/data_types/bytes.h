@@ -63,7 +63,7 @@ public:
 };
 
 class BytesReceiver: public Bytes {
-    server_socket_t socket = nullptr;
+    socket_t socket = nullptr;
 
     void listen() {
         boost::array<char, 128> buffer{};
@@ -75,7 +75,7 @@ class BytesReceiver: public Bytes {
 public:
     BytesReceiver() = default;
 
-    BytesReceiver(server_socket_t &socket) : socket(socket) {
+    BytesReceiver(socket_t &socket) : socket(socket) {
         listen();
     }
 
