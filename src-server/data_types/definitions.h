@@ -45,7 +45,8 @@ class Executable {
 public:
     virtual ~Executable() = default;
 
-    virtual void execute([[maybe_unused]] GameState &game_state) = 0;
+    virtual void execute(std::shared_ptr<GameState> &game_state,
+                         socket_t &socket) = 0;
 };
 
 template<class T>

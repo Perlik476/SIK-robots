@@ -10,61 +10,50 @@ enum ClientMessageType: char {
     Move,
 };
 
-class ClientMessage: public Executable {
-protected:
-    player_id_t player_id;
+class ClientMessage : public Executable {};
+
+class JoinMessage : public ClientMessage {
+private:
+    String name;
+
+public:
+    JoinMessage(Bytes &bytes) : name(bytes) {}
+
+    void execute(std::shared_ptr<GameState> &game_state, socket_t &socket) override {
+        std::cout << "Join: " << name.get_string() << std::endl;
+
+    }
 };
 
 class PlaceBombMessage : public ClientMessage {
 public:
-    explicit PlaceBombMessage(player_id_t &player_id) {
-        this->player_id = player_id;
-    }
+    explicit PlaceBombMessage() = default;
 
-    void execute(GameState &game_state) override {
-
+    void execute(std::shared_ptr<GameState> &game_state, [[maybe_unused]] socket_t &socket) override {
+        std::cout << "PlaceBomb" << std::endl;
     }
 };
-//
-//class JoinMessage : public ClientMessage {
-//private:
-//    char get_identifier() const override { return 0; }
-//    String name;
-//
-//public:
-//    JoinMessage() = default;
-//
-//    explicit JoinMessage(const std::string &name): name(String(name)) {}
-//
-//    explicit JoinMessage(const String &name): name(name) {}
-//
-//    Bytes serialize() const override {
-//        return Bytes(get_identifier()) + name.serialize();
-//    }
-//};
 
-//
-//class PlaceBlockMessage : public ClientMessage {
-//private:
-//    char get_identifier() const override { return 2; }
-//
-//public:
-//    PlaceBlockMessage() = default;
-//};
-//
-//class MoveMessage : public ClientMessage {
-//private:
-//    char get_identifier() const override { return 3; }
-//    Direction direction = Undefined;
-//
-//public:
-//    MoveMessage() = default;
-//
-//    explicit MoveMessage(const Direction direction): direction(direction) {}
-//
-//    Bytes serialize() const override {
-//        return Bytes(get_identifier()) + Bytes(direction);
-//    }
-//};
+
+class PlaceBlockMessage : public ClientMessage {
+public:
+    explicit PlaceBlockMessage() = default;
+
+    void execute(std::shared_ptr<GameState> &game_state, [[maybe_unused]] socket_t &socket) override {
+        std::cout << "PlaceBlock" << std::endl;
+    }
+};
+
+class MoveMessage : public ClientMessage {
+private:
+    Direction direction = Undefined;
+
+public:
+    MoveMessage(Bytes &bytes) : direction(get_direction(bytes)) {}
+
+    void execute(std::shared_ptr<GameState> &game_state, [[maybe_unused]] socket_t &socket) override {
+        std::cout << "Move: " << direction << std::endl;
+    }
+};
 
 #endif //ROBOTS_CLIENT_MESSAGES_H

@@ -13,6 +13,8 @@
 #include "bomb.h"
 #include "arguments.h"
 
+class ClientMessage;
+
 using score_t = Uint32;
 using players_count_t = Uint8;
 using game_length_t = Uint16;
@@ -51,6 +53,8 @@ class GameState {
     players_scores_t scores;
     std::map<player_id_t, bool> death_this_round;
 
+    std::map<player_id_t, std::shared_ptr<ClientMessage>> players_action;
+
 public:
     // Messages from server.
     friend class TurnMessage;
@@ -70,6 +74,10 @@ public:
         game_length(arguments->game_length), explosion_radius(arguments->explosion_radius),
         bomb_timer(arguments->bomb_timer), initial_blocks(arguments->initial_blocks), seed(arguments->seed),
         turn_duration(arguments->turn_duration) {}
+
+    void set_action(player_id_t &player_id, std::shared_ptr<ClientMessage> &client_message) {
+        players_action[player_id] = client_message;
+    }
 
     void before_turn() {
         explosions = Set<Position>();

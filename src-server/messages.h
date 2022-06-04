@@ -9,13 +9,8 @@
 #include "messages/server_messages.h"
 
 class ClientMessage;
-
-class DrawMessage;
-
 class ServerMessage;
 
-class GuiMessage;
-
-std::shared_ptr<ServerMessage> get_server_message(Bytes &bytes);
+std::shared_ptr<ClientMessage> get_client_message(Bytes &bytes);
 
 #endif // ROBOTS_MESSAGES_H

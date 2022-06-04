@@ -33,22 +33,25 @@ public:
     socket_t &get_socket() { return socket; }
 };
 
-void sender_fun(socket_t &socket) {
-    for (int i = 0; i < 100000; i++) {
+void sender_fun(socket_t socket) {
+    for (;;) {
 
     }
 }
 
-void receiver_fun(socket_t &socket) {
+void receiver_fun(socket_t socket, std::shared_ptr<GameState> &game_state) {
     for (;;) {
         BytesReceiver bytes(socket);
         while (!bytes.is_end()) {
-            bytes.get_next_byte();
+            std::cout << "bytes" << std::endl;
+            auto message = get_client_message(bytes);
+            message->execute(game_state, socket);
+            std::cout << "done" << std::endl;
         }
     }
 }
 
-void acceptor_fun(std::shared_ptr<Arguments> &arguments) {
+void acceptor_fun(std::shared_ptr<Arguments> &arguments, std::shared_ptr<GameState> &game_state) {
     boost::asio::io_context io_context;
     tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v6(), arguments->get_port()));
 
@@ -61,8 +64,8 @@ void acceptor_fun(std::shared_ptr<Arguments> &arguments) {
 
         std::cout << "Accepted" << std::endl;
 
-        auto sender_thread = std::make_shared<std::thread>(sender_fun, std::ref(socket));
-        auto receiver_thread = std::make_shared<std::thread>(receiver_fun, std::ref(socket));
+        auto sender_thread = std::make_shared<std::thread>(sender_fun, socket);
+        auto receiver_thread = std::make_shared<std::thread>(receiver_fun, socket, std::ref(game_state));
 
         senders->insert(sender_thread);
         receivers->insert(receiver_thread);
@@ -95,11 +98,11 @@ int main(int argc, char *argv[]) {
 
     std::cout << "OK\n";
 
-    std::thread acceptor_thread{acceptor_fun, std::ref(arguments)};
+    auto game_state = std::make_shared<GameState>(arguments);
+
+    std::thread acceptor_thread{acceptor_fun, std::ref(arguments), std::ref(game_state)};
 
     acceptor_thread.join();
-
-    auto game_state = std::make_shared<GameState>(arguments);
 
 //    ThreadsInfo threads_info;
 //    std::shared_ptr<SocketsInfo> sockets_info;
