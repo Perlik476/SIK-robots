@@ -2,6 +2,7 @@
 #define ROBOTS_CLIENT_MESSAGES_H
 
 #include "../includes.h"
+#include "server_messages.h"
 
 enum ClientMessageType: char {
     Join,
@@ -21,7 +22,7 @@ public:
 
     void execute(std::shared_ptr<GameState> &game_state, socket_t &socket) override {
         std::cout << "Join: " << name.get_string() << std::endl;
-
+        HelloMessage(game_state).send(socket);
     }
 };
 

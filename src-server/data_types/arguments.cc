@@ -3,10 +3,12 @@
 namespace po = boost::program_options;
 
 void Arguments::parse_arguments(int argc, char *argv[]) {
+    uint16_t players_count_temp;
+
     po::options_description desc("Allowed options");
     desc.add_options()
             ("bomb-timer,b", po::value<uint16_t>(&bomb_timer)->required())
-            ("players-count,c", po::value<uint8_t>(&players_count)->required())
+            ("players-count,c", po::value<uint16_t>(&players_count_temp)->required())
             ("turn-duration,d", po::value<uint64_t>(&turn_duration)->required())
             ("explosion-radius,e", po::value<uint16_t>(&explosion_radius)->required())
             ("help,h", "Produce help message")
@@ -26,4 +28,10 @@ void Arguments::parse_arguments(int argc, char *argv[]) {
     }
 
     po::notify(vm);
+
+    if (players_count_temp > UINT8_MAX) {
+        // TODO
+    }
+
+    players_count = static_cast<uint8_t>(players_count_temp);
 }

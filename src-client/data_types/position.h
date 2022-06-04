@@ -4,10 +4,10 @@
 #include "definitions.h"
 #include "uint.h"
 
-using Coordinate = Uint16;
+using coordinate_t = Uint16;
 
 class Position: public Serializable {
-    Coordinate x, y;
+    coordinate_t x, y;
 public:
     auto &get_x() { return x; }
 
@@ -24,8 +24,8 @@ public:
     Position(Uint16 &x, Uint16 &y) : x(x), y(y) {}
 
     explicit Position(Bytes &bytes) {
-        x = Coordinate(bytes);
-        y = Coordinate(bytes);
+        x = coordinate_t(bytes);
+        y = coordinate_t(bytes);
     }
 
     Bytes serialize() const override {

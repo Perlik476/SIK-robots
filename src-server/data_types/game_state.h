@@ -38,8 +38,8 @@ class GameState {
 
     String server_name;
     players_count_t players_count;
-    Coordinate size_x;
-    Coordinate size_y;
+    coordinate_t size_x;
+    coordinate_t size_y;
     game_length_t game_length;
     explosion_radius_t explosion_radius;
     bomb_timer_t bomb_timer;
