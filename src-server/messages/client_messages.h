@@ -98,9 +98,7 @@ class PlaceBombMessage : public ClientMessage {
 public:
     explicit PlaceBombMessage() = default;
 
-    void execute(std::shared_ptr<GameState> &game_state, [[maybe_unused]] std::shared_ptr<ClientInfo> &client_info) override {
-        std::cout << "PlaceBomb" << std::endl;
-    }
+    void execute(std::shared_ptr<GameState> &game_state, std::shared_ptr<ClientInfo> &client_info) override;
 };
 
 
@@ -108,9 +106,7 @@ class PlaceBlockMessage : public ClientMessage {
 public:
     explicit PlaceBlockMessage() = default;
 
-    void execute(std::shared_ptr<GameState> &game_state, [[maybe_unused]] std::shared_ptr<ClientInfo> &client_info) override {
-        std::cout << "PlaceBlock" << std::endl;
-    }
+    void execute(std::shared_ptr<GameState> &game_state, std::shared_ptr<ClientInfo> &client_info) override;
 };
 
 class MoveMessage : public ClientMessage {

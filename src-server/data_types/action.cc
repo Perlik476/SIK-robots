@@ -17,18 +17,29 @@ std::shared_ptr<Event> MoveAction::execute(GameState *game_state, uint8_t &playe
 
 std::shared_ptr<Event> PlaceBombAction::execute(GameState *game_state, uint8_t &player_id) {
     auto &position = game_state->player_positions.get_map()[player_id];
-    if (false) {
-        //TODO
+    auto &bombs = game_state->bombs.get_list();
+    auto &bombs_map = game_state->bombs_map;
+
+    bomb_id_t bomb_id = 0;
+    for (auto &[id, ptr] : bombs_map) {
+        if (id.get_value() > bomb_id.get_value()) {
+            bomb_id = id;
+        }
     }
-    else {
-        return nullptr;
-    }
+
+    auto bomb = std::make_shared<Bomb>(position, game_state->bomb_timer);
+    bombs.push_back(bomb);
+    bombs_map[bomb_id] = bomb;
+
+    return std::make_shared<BombPlacedEvent>(bomb_id, position);
 }
 
 std::shared_ptr<Event> PlaceBlockAction::execute(GameState *game_state, uint8_t &player_id) {
     auto &position = game_state->player_positions.get_map()[player_id];
-    if (false) {
-        //TODO
+    auto &blocks = game_state->blocks.get_set();
+    if (!blocks.contains(position)) {
+        blocks.insert(position);
+        return std::make_shared<BlockPlacedEvent>(position);
     }
     else {
         return nullptr;

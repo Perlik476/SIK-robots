@@ -6,7 +6,7 @@
 #include "uint.h"
 #include "position.h"
 
-using BombId = Uint32;
+using bomb_id_t = Uint32;
 
 class Bomb: public Serializable {
 public:

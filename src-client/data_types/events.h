@@ -10,12 +10,12 @@
 #include "list.h"
 
 class BombPlacedEvent: public Executable {
-    BombId id;
+    bomb_id_t id;
     Position position;
 
 public:
     explicit BombPlacedEvent(Bytes &bytes) {
-        id = BombId(bytes);
+        id = bomb_id_t(bytes);
         position = Position(bytes);
     }
 
@@ -23,7 +23,7 @@ public:
 };
 
 class BombExplodedEvent: public Executable {
-    BombId id;
+    bomb_id_t id;
     List<player_id_t> robots_destroyed;
     List<Position> blocks_destroyed;
 
@@ -38,7 +38,7 @@ class BombExplodedEvent: public Executable {
     void add_explosions(GameState &game_state, Position &bomb_position);
 public:
     explicit BombExplodedEvent(Bytes &bytes) {
-        id = BombId(bytes);
+        id = bomb_id_t(bytes);
         robots_destroyed = List<player_id_t>(bytes);
         blocks_destroyed = List<Position>(bytes);
     }

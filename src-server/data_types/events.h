@@ -19,11 +19,11 @@ enum EventType: char {
 class Event: public Serializable {};
 
 class BombPlacedEvent: public Event {
-    BombId id;
+    bomb_id_t id;
     Position position;
 
 public:
-    explicit BombPlacedEvent(BombId &id, Position &position) : id(id), position(position) {}
+    explicit BombPlacedEvent(bomb_id_t &id, Position &position) : id(id), position(position) {}
 
     Bytes serialize() const override {
         return Bytes(EventType::BombPlaced) + id.serialize() + position.serialize();
@@ -31,11 +31,11 @@ public:
 };
 
 class BombExplodedEvent: public Event {
-    BombId id;
+    bomb_id_t id;
     List<player_id_t> robots_destroyed;
     List<Position> blocks_destroyed;
 public:
-    explicit BombExplodedEvent(BombId &id, List<player_id_t> &robots_destroyed, List<Position> &blocks_destroyed)
+    explicit BombExplodedEvent(bomb_id_t &id, List<player_id_t> &robots_destroyed, List<Position> &blocks_destroyed)
         : id(id), robots_destroyed(robots_destroyed), blocks_destroyed(blocks_destroyed) {}
 
     Bytes serialize() const override {

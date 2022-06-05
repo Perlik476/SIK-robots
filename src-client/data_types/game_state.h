@@ -42,7 +42,7 @@ class GameState {
     players_positions_t player_positions;
     blocks_t blocks;
     bombs_t bombs;
-    std::map<BombId, std::shared_ptr<Bomb>> bombs_map;
+    std::map<bomb_id_t, std::shared_ptr<Bomb>> bombs_map;
     explosions_t explosions;
     players_scores_t scores;
     std::map<player_id_t, bool> death_this_round;
