@@ -58,17 +58,17 @@ void GameState::start_game() {
 
 void GameState::add_explosion(const Position &bomb_position, List<player_id_t> &robots_destroyed,
                               List<Position> &blocks_destroyed) {
+    for (auto &[id, position] : player_positions.get_map()) {
+        if (bomb_position == position) {
+            robots_destroyed.get_list().push_back(id);
+            player_deaths_this_round.insert(id);
+        }
+    }
+
     for (auto &block_position : blocks.get_set()) {
         if (bomb_position == block_position) {
             blocks_destroyed.get_list().push_back(bomb_position);
             blocks_destroyed_this_round.insert(block_position);
-
-            for (auto &[id, position] : player_positions.get_map()) {
-                if (bomb_position == position) {
-                    robots_destroyed.get_list().push_back(id);
-                    player_deaths_this_round.insert(id);
-                }
-            }
 
             return;
         }
