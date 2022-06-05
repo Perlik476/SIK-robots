@@ -17,6 +17,23 @@
 class ServerMessage;
 class ClientMessage;
 
+class ClientState {
+    int accepted_players_sent = 0;
+    bool game_started_sent = false;
+    int turns_sent = 0;
+    bool game_ended_sent = false;
+
+
+public:
+    ClientState() = default;
+
+    int get_accepted_players_sent() { return accepted_players_sent; }
+    int get_turns_sent() { return turns_sent; }
+
+    void increase_accepted_players_sent(int inc) { accepted_players_sent += inc; }
+    void increase_turns_sent(int inc) { turns_sent += inc; }
+};
+
 class GameState {
     bool is_started = false;
     uint8_t next_player_id = 0;
@@ -26,8 +43,6 @@ class GameState {
     std::condition_variable sending_condition;
     std::condition_variable sending_ended;
     std::atomic_int how_many_to_send = 0;
-
-    std::set<uint8_t> accepted_players_to_send;
 
     uint16_t initial_blocks;
     uint32_t seed;
@@ -51,6 +66,7 @@ class GameState {
     std::map<player_id_t, bool> death_this_round;
 
     std::map<player_id_t, std::shared_ptr<ClientMessage>> players_action;
+    std::vector<std::shared_ptr<ServerMessage>> accepted_players_to_send;
 
 public:
     GameState(std::shared_ptr<Arguments> &arguments) : server_name(arguments->server_name),
@@ -63,15 +79,7 @@ public:
         players_action[player_id] = client_message;
     }
 
-    void try_add_player(const String &player_name, const String &address) {
-        if (players.get_map().size() == players_count.get_value()) {
-            return;
-        }
-
-        players.get_map()[next_player_id] = Player(player_name, address);
-        accepted_players_to_send.insert(next_player_id);
-        next_player_id++;
-    }
+    void try_add_player(const String &player_name, const String &address);
 
     void before_turn() {
         explosions = Set<Position>();
@@ -106,7 +114,7 @@ public:
 
     void send_next();
 
-    std::vector<std::shared_ptr<ServerMessage>> get_messages();
+    std::vector<std::shared_ptr<ServerMessage>> get_messages(ClientState &client_state);
 
     auto &get_server_name() const { return server_name; }
     auto &get_players_count() const { return players_count; }

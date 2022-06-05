@@ -81,6 +81,8 @@ public:
 
 void sender_fun(std::shared_ptr<ClientInfo> client_info, std::shared_ptr<GameState> &game_state,
                 std::atomic_int &current_connections) {
+    ClientState client_state;
+
     try {
         {
             std::unique_lock<std::mutex> lock(client_info->get_mutex());
@@ -88,13 +90,15 @@ void sender_fun(std::shared_ptr<ClientInfo> client_info, std::shared_ptr<GameSta
                 client_info->get_condition().wait(lock);
             }
         }
+
         for (;;) {
             if (client_info->get_ended()) {
 //                std::cout << "return" << std::endl;
 //                client_info->end_threads(current_connections);
                 return;
             }
-            auto messages = game_state->get_messages();
+
+            auto messages = game_state->get_messages(client_state);
             for (auto &message: messages) {
                 message->send(client_info->get_socket());
             }

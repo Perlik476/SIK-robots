@@ -29,6 +29,10 @@ public:
     Bytes serialize() const override {
         return name.serialize() + address.serialize();
     }
+
+    int operator== (Player &other) {
+        return address.get_string() == other.address.get_string(); // TODO
+    }
 };
 
 #endif //ROBOTS_PLAYER_H
