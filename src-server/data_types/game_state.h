@@ -13,6 +13,8 @@
 #include "bomb.h"
 #include "arguments.h"
 #include "usings.h"
+#include "events.h"
+#include <random>
 
 class ServerMessage;
 class ClientMessage;
@@ -50,6 +52,8 @@ class GameState {
     uint32_t seed;
     uint64_t turn_duration;
 
+    std::minstd_rand random;
+
     String server_name;
     players_count_t players_count;
     coordinate_t size_x;
@@ -69,13 +73,19 @@ class GameState {
 
     std::map<player_id_t, std::shared_ptr<ClientMessage>> players_action;
     std::vector<std::shared_ptr<ServerMessage>> accepted_players_to_send;
+    std::vector<std::shared_ptr<ServerMessage>> turn_messages;
+
+    void start_game();
 
 public:
     GameState(std::shared_ptr<Arguments> &arguments) : server_name(arguments->server_name),
         players_count(arguments->players_count), size_x(arguments->size_x), size_y(arguments->size_y),
         game_length(arguments->game_length), explosion_radius(arguments->explosion_radius),
         bomb_timer(arguments->bomb_timer), initial_blocks(arguments->initial_blocks), seed(arguments->seed),
-        turn_duration(arguments->turn_duration) {}
+        turn_duration(arguments->turn_duration) {
+
+        random = std::minstd_rand(seed);
+    }
 
     void set_action(player_id_t &player_id, std::shared_ptr<ClientMessage> &client_message) {
         players_action[player_id] = client_message;

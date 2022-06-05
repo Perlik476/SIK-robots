@@ -25,7 +25,23 @@ void GameState::try_add_player(const String &player_name, const String &address)
 
     if (players.get_map().size() == players_count) {
         is_started = true;
+        start_game();
     }
+}
+
+void GameState::start_game() {
+    turn = 0;
+    PointerList<Event> events;
+
+    for (uint8_t id = 0; id < players_count.get_value(); id++) {
+        auto position = Position(random() % size_x.get_value(), random() % size_y.get_value());
+        player_positions.get_map()[id] = position;
+        auto id_temp = player_id_t(id);
+        auto event = std::make_shared<PlayerMovedEvent>(id_temp, position);
+        events.get_list().push_back(event);
+    }
+
+    turn_messages.push_back(std::make_shared<TurnMessage>(turn, events));
 }
 
 void GameState::send_next() {
@@ -76,12 +92,12 @@ std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages(ClientState 
     std::cout << "messages" << std::endl;
     std::vector<std::shared_ptr<ServerMessage>> messages;
 
-    auto it = accepted_players_to_send.begin() + client_state.get_accepted_players_sent();
+    auto accepted_players_iterator = accepted_players_to_send.begin() + client_state.get_accepted_players_sent();
     std::cout << "accepted players sent: " << client_state.get_accepted_players_sent() << std::endl;
-    while (it != accepted_players_to_send.end()) {
+    while (accepted_players_iterator != accepted_players_to_send.end()) {
         std::cout << "accepted player to send" << std::endl;
-        messages.push_back(*it);
-        it++;
+        messages.push_back(*accepted_players_iterator);
+        accepted_players_iterator++;
         client_state.increase_accepted_players_sent(1);
     }
 
@@ -89,6 +105,15 @@ std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages(ClientState 
     if (is_started && !client_state.get_game_started_sent()) {
         messages.push_back(std::make_shared<GameStartedMessage>(players));
         client_state.set_game_started_sent();
+    }
+
+    auto turn_messages_iterator = turn_messages.begin() + client_state.get_turns_sent();
+    std::cout << "turns sent: " << client_state.get_turns_sent() << std::endl;
+    while (turn_messages_iterator != turn_messages.end()) {
+        std::cout << "turn message to send" << std::endl;
+        messages.push_back(*turn_messages_iterator);
+        turn_messages_iterator++;
+        client_state.increase_turns_sent(1);
     }
 
     how_many_to_send--;

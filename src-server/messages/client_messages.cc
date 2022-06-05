@@ -3,6 +3,7 @@
 
 void JoinMessage::execute(std::shared_ptr<GameState> &game_state, std::shared_ptr<ClientInfo> &client_info) {
     std::cout << "Join: " << name.get_string() << std::endl;
+
     auto endpoint = client_info->get_socket()->remote_endpoint();
     std::stringstream ss;
     ss << "[" << endpoint.address().to_string() << "]:" << endpoint.port();

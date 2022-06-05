@@ -79,4 +79,21 @@ public:
     }
 };
 
+class TurnMessage : public ServerMessage {
+    char get_identifier() const override {
+        return 3;
+    }
+
+    turn_t turn;
+    PointerList<Event> events;
+
+public:
+    TurnMessage(turn_t &turn, PointerList<Event> &events) : turn(turn), events(events) {}
+
+    Bytes serialize() const override {
+        std::cout << "TurnMessage" << std::endl;
+        return Bytes(get_identifier()) + turn.serialize() + events.serialize();
+    }
+};
+
 #endif //ROBOTS_SERVER_MESSAGES_H
