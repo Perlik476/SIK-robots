@@ -44,6 +44,29 @@ void GameState::start_game() {
     turn_messages.push_back(std::make_shared<TurnMessage>(turn, events));
 }
 
+void GameState::next_turn() {
+    std::unique_lock<std::mutex> lock(mutex);
+
+    std::cout << "next turn" << std::endl;
+
+    if (is_started) {
+        turn += 1;
+        PointerList<Event> events;
+
+        for (uint8_t id = 0; id < players_count.get_value(); id++) {
+            std::cout << "id: " << id << std::endl;
+            auto &position = player_positions.get_map()[id];
+            position = position.right();
+            auto id_temp = player_id_t(id);
+            events.get_list().push_back(std::make_shared<PlayerMovedEvent>(id_temp, position));
+        }
+
+        turn_messages.push_back(std::make_shared<TurnMessage>(turn, events));
+    }
+
+    std::cout << "next turn end" << std::endl;
+}
+
 void GameState::send_next() {
 //    std::cout << "send_next" << std::endl;
 

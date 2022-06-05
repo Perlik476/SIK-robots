@@ -14,9 +14,6 @@ void acceptor_fun(std::shared_ptr<Arguments> &arguments, std::shared_ptr<GameSta
                   boost::asio::io_context &io_context) {
     tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v6(), arguments->get_port()));
 
-//    threads_t senders = std::make_shared<std::set<thread_t>>();
-//    threads_t receivers = std::make_shared<std::set<thread_t>>();
-
     std::atomic_int current_connections = 0;
     const int max_connections = 25;
     try {
@@ -37,9 +34,6 @@ void acceptor_fun(std::shared_ptr<Arguments> &arguments, std::shared_ptr<GameSta
                 // TODO
                 receiver_thread->detach();
 
-//                senders->insert(sender_thread);
-//                receivers->insert(receiver_thread);
-
                 client_info->set_sender();
                 client_info->set_receiver();
 
@@ -53,18 +47,13 @@ void acceptor_fun(std::shared_ptr<Arguments> &arguments, std::shared_ptr<GameSta
     }
 
     std::cout << "exit" << std::endl;
-//    for (auto &sender : *senders) {
-//        sender->join();
-//    }
-//    for (auto &receiver : *receivers) {
-//        receiver->join();
-//    }
 }
 
 void main_loop(std::shared_ptr<GameState> &game_state, boost::asio::io_context &io_context) {
     for (;;) {
         boost::asio::steady_timer timer(io_context, boost::asio::chrono::milliseconds(game_state->get_turn_duration()));
         timer.wait();
+        game_state->next_turn();
         game_state->send_next();
     }
 }

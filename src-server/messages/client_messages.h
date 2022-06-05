@@ -86,6 +86,7 @@ class JoinMessage : public ClientMessage {
 private:
     String name;
 
+
 public:
     JoinMessage(Bytes &bytes) : name(bytes) {}
 

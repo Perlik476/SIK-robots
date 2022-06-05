@@ -124,6 +124,8 @@ public:
         death_this_round.clear();
     }
 
+    void next_turn();
+
     void send_next();
 
     std::vector<std::shared_ptr<ServerMessage>> get_messages(ClientState &client_state);
