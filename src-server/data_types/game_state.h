@@ -29,9 +29,11 @@ public:
 
     int get_accepted_players_sent() { return accepted_players_sent; }
     int get_turns_sent() { return turns_sent; }
+    bool get_game_started_sent() { return game_started_sent; }
 
     void increase_accepted_players_sent(int inc) { accepted_players_sent += inc; }
     void increase_turns_sent(int inc) { turns_sent += inc; }
+    void set_game_started_sent() { game_started_sent = true; }
 };
 
 class GameState {

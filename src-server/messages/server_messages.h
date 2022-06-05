@@ -63,4 +63,20 @@ public:
     }
 };
 
+class GameStartedMessage : public ServerMessage {
+    char get_identifier() const override {
+        return 2;
+    }
+
+    players_t players;
+
+public:
+    GameStartedMessage(players_t &players) : players(players) {}
+
+    Bytes serialize() const override {
+        std::cout << "GameStarted" << std::endl;
+        return Bytes(get_identifier()) + players.serialize();
+    }
+};
+
 #endif //ROBOTS_SERVER_MESSAGES_H

@@ -2,6 +2,11 @@
 #include "../messages.h"
 
 void GameState::try_add_player(const String &player_name, const String &address) {
+    std::unique_lock<std::mutex> lock(mutex);
+    while (is_sending) { // TODO
+        sending_condition.wait(lock);
+    }
+
     if (players.get_map().size() == players_count.get_value()) {
         return;
     }
@@ -17,6 +22,10 @@ void GameState::try_add_player(const String &player_name, const String &address)
     auto id = player_id_t(next_player_id);
     accepted_players_to_send.push_back(std::make_shared<AcceptedPlayerMessage>(id, player));
     next_player_id++;
+
+    if (players.get_map().size() == players_count) {
+        is_started = true;
+    }
 }
 
 void GameState::send_next() {
@@ -34,13 +43,10 @@ void GameState::send_next() {
         while (how_many_to_send != 0) {
             sending_ended.wait(lock);
         }
-    }
 
-    {
-        std::unique_lock<std::mutex> lock(mutex);
+        is_sending = false;
+        sending_ended.notify_all();
     }
-    is_sending = false;
-    sending_ended.notify_all();
 
 //    std::cout << "send_next end" << std::endl;
 }
@@ -69,23 +75,20 @@ std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages(ClientState 
 
     std::cout << "messages" << std::endl;
     std::vector<std::shared_ptr<ServerMessage>> messages;
-    if (is_started) {
 
+    auto it = accepted_players_to_send.begin() + client_state.get_accepted_players_sent();
+    std::cout << "accepted players sent: " << client_state.get_accepted_players_sent() << std::endl;
+    while (it != accepted_players_to_send.end()) {
+        std::cout << "accepted player to send" << std::endl;
+        messages.push_back(*it);
+        it++;
+        client_state.increase_accepted_players_sent(1);
     }
-    else {
-        auto it = accepted_players_to_send.begin() + client_state.get_accepted_players_sent();
-        std::cout << "accepted players sent: " << client_state.get_accepted_players_sent() << std::endl;
-        while (it != accepted_players_to_send.end()) {
-            std::cout << "accepted player to send" << std::endl;
-            messages.push_back(*it);
-            it++;
-            client_state.increase_accepted_players_sent(1);
-        }
-//        for (auto id : accepted_players_to_send) {
-//            auto id_temp = player_id_t(id);
-//            auto player = players.get_map()[id];
-//            messages.push_back(std::make_shared<AcceptedPlayerMessage>(id_temp, player));
-//        }
+
+    std::cout << "is_started: " << is_started << std::endl;
+    if (is_started && !client_state.get_game_started_sent()) {
+        messages.push_back(std::make_shared<GameStartedMessage>(players));
+        client_state.set_game_started_sent();
     }
 
     how_many_to_send--;
