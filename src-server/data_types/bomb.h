@@ -9,9 +9,9 @@
 using bomb_id_t = Uint32;
 
 class Bomb: public Serializable {
-public:
     Position position;
     Uint16 timer;
+public:
 
     Bomb() = default;
 
@@ -26,9 +26,11 @@ public:
         return position.serialize() + timer.serialize();
     }
 
-    bool operator==(const Bomb &other) const {
-        return position == other.position && timer == other.timer;
-    }
+    void decrease_timer() { timer -= 1; }
+
+    bool does_explode() { return !timer.get_value(); }
+
+    auto get_position() { return position; }
 };
 
 #endif //ROBOTS_BOMB_H

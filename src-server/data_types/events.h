@@ -35,7 +35,7 @@ class BombExplodedEvent: public Event {
     List<player_id_t> robots_destroyed;
     List<Position> blocks_destroyed;
 public:
-    explicit BombExplodedEvent(bomb_id_t &id, List<player_id_t> &robots_destroyed, List<Position> &blocks_destroyed)
+    explicit BombExplodedEvent(const bomb_id_t &id, List<player_id_t> &robots_destroyed, List<Position> &blocks_destroyed)
         : id(id), robots_destroyed(robots_destroyed), blocks_destroyed(blocks_destroyed) {}
 
     Bytes serialize() const override {

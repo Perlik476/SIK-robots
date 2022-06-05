@@ -20,12 +20,8 @@ std::shared_ptr<Event> PlaceBombAction::execute(GameState *game_state, uint8_t &
     auto &bombs = game_state->bombs.get_list();
     auto &bombs_map = game_state->bombs_map;
 
-    bomb_id_t bomb_id = 0;
-    for (auto &[id, ptr] : bombs_map) {
-        if (id.get_value() > bomb_id.get_value()) {
-            bomb_id = id;
-        }
-    }
+    bomb_id_t bomb_id = game_state->next_bomb_id;
+    game_state->next_bomb_id += 1;
 
     auto bomb = std::make_shared<Bomb>(position, game_state->bomb_timer);
     bombs.push_back(bomb);

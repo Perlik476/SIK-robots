@@ -22,7 +22,7 @@ void BombExplodedEvent::remove_bomb(GameState &game_state, std::shared_ptr<Bomb>
 
 void BombExplodedEvent::set_dead_players(GameState &game_state) {
     for (auto &player_id : robots_destroyed.get_list()) {
-        game_state.death_this_round[player_id] = true;
+        game_state.player_deaths_this_round[player_id] = true;
     }
 }
 

@@ -34,7 +34,7 @@ void GameState::start_game() {
     PointerList<Event> events;
 
     for (uint8_t id = 0; id < players_count.get_value(); id++) {
-        auto position = Position(random() % size_x.get_value(), random() % size_y.get_value());
+        auto position = get_random_position();
 
         player_positions.get_map()[id] = position;
         auto id_temp = player_id_t(id);
@@ -44,7 +44,7 @@ void GameState::start_game() {
     }
 
     for (uint16_t i = 0; i < initial_blocks; i++) {
-        auto position = Position(random() % size_x.get_value(), random() % size_y.get_value());
+        auto position = get_random_position();
 
         if (!blocks.get_set().contains(position)) {
             blocks.get_set().insert(position);
@@ -56,24 +56,111 @@ void GameState::start_game() {
     turn_messages.push_back(std::make_shared<TurnMessage>(turn, events));
 }
 
+void GameState::add_explosion(const Position &bomb_position, List<player_id_t> &robots_destroyed,
+                              List<Position> &blocks_destroyed) {
+    for (auto &block_position : blocks.get_set()) {
+        if (bomb_position == block_position) {
+            blocks_destroyed.get_list().push_back(bomb_position);
+            blocks_destroyed_this_round.insert(block_position);
+
+            for (auto &[id, position] : player_positions.get_map()) {
+                if (bomb_position == position) {
+                    robots_destroyed.get_list().push_back(id);
+                    player_deaths_this_round.insert(id);
+                }
+            }
+
+            return;
+        }
+    }
+    for (size_t i = 0; i < 4; i++) {
+        auto direction = static_cast<Direction>(i);
+        auto current_position = bomb_position;
+        bool do_continue = true;
+
+        for (size_t r = 0; r < explosion_radius.get_value()
+                && do_continue && current_position.is_next_proper(direction, size_x, size_y); r++) {
+
+            current_position = current_position.next(direction);
+
+            for (auto &[id, position] : player_positions.get_map()) {
+                if (current_position == position) {
+                    robots_destroyed.get_list().push_back(id);
+                    player_deaths_this_round.insert(id);
+                }
+            }
+
+            for (auto &block_position : blocks.get_set()) {
+                if (current_position == block_position) {
+                    do_continue = false;
+                    blocks_destroyed.get_list().push_back(current_position);
+                    blocks_destroyed_this_round.insert(block_position);
+                    break;
+                }
+            }
+        }
+    }
+}
+
 void GameState::next_turn() {
     std::unique_lock<std::mutex> lock(mutex);
 
     std::cout << "next turn" << std::endl;
+    player_deaths_this_round.clear();
+    blocks_destroyed_this_round.clear();
 
     if (is_started) {
-        turn += 1;
         PointerList<Event> events;
 
+        std::set<bomb_id_t> bombs_to_remove;
+
+        for (auto &[id, bomb] : bombs_map) {
+            bomb->decrease_timer();
+            if (bomb->does_explode()) {
+                auto position = bomb->get_position();
+                List<player_id_t> robots_destroyed;
+                List<Position> blocks_destroyed;
+
+                add_explosion(position, robots_destroyed, blocks_destroyed);
+
+                events.get_list().push_back(std::make_shared<BombExplodedEvent>(id, robots_destroyed, blocks_destroyed));
+
+                bombs_to_remove.insert(id);
+                auto bombs_it = bombs.get_list().begin();
+                while (*bombs_it != bomb) {
+                    bombs_it++;
+                }
+                bombs.get_list().erase(bombs_it);
+            }
+        }
+
+        for (auto &id : bombs_to_remove) {
+            bombs_map.erase(id);
+        }
+
+        for (auto &position : blocks_destroyed_this_round) {
+            blocks.get_set().erase(position);
+        }
+
         for (uint8_t id = 0; id < players_count.get_value(); id++) {
-            if (players_action.contains(id)) {
-                auto action = players_action[id];
-                if (action) {
-                    events.get_list().push_back(action->execute(this, id));
-                    players_action.erase(id);
+            if (player_deaths_this_round.contains(id)) {
+                auto position = get_random_position();
+                player_positions.get_map()[id] = position;
+                auto id_temp = player_id_t(id);
+                events.get_list().push_back(std::make_shared<PlayerMovedEvent>(id_temp, position));
+            }
+            else {
+                if (players_action.contains(id)) {
+                    auto action = players_action[id];
+                    if (action) {
+                        events.get_list().push_back(action->execute(this, id));
+                        players_action.erase(id);
+                    }
                 }
             }
         }
+
+        turn += 1;
 
         turn_messages.push_back(std::make_shared<TurnMessage>(turn, events));
     }

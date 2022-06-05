@@ -68,15 +68,24 @@ class GameState {
     blocks_t blocks;
     bombs_t bombs;
     std::map<bomb_id_t, std::shared_ptr<Bomb>> bombs_map;
-    explosions_t explosions;
     players_scores_t scores;
-    std::map<player_id_t, bool> death_this_round;
+    std::set<player_id_t> player_deaths_this_round;
+    std::set<Position> blocks_destroyed_this_round;
+
+    bomb_id_t next_bomb_id = 0;
 
     std::map<player_id_t, std::shared_ptr<Action>> players_action;
     std::vector<std::shared_ptr<ServerMessage>> accepted_players_to_send;
     std::vector<std::shared_ptr<ServerMessage>> turn_messages;
 
+    Position get_random_position() {
+        return Position(random() % size_x.get_value(), random() % size_y.get_value());
+    }
+
     void start_game();
+
+    void add_explosion(const Position &bomb_position, List<player_id_t> &robots_destroyed,
+                       List<Position> &blocks_destroyed);
 
 public:
     friend MoveAction;
@@ -94,25 +103,6 @@ public:
 
     void try_add_player(const String &player_name, const String &address);
 
-    void before_turn() {
-        explosions = Set<Position>();
-        death_this_round.clear();
-        for (auto [player_id, _] : scores.get_map()) {
-            death_this_round[player_id] = false;
-        }
-        for (auto &bomb : bombs.get_list()) {
-            bomb->timer -= 1;
-        }
-    }
-
-    void after_turn() {
-        auto it = scores.get_map().begin();
-        while (it != scores.get_map().end()) {
-            it->second += death_this_round[it->first];
-            it++;
-        }
-    }
-
     void reset() {
         // TODO
         turn = 0;
@@ -121,9 +111,8 @@ public:
         blocks.get_set().clear();
         bombs.get_list().clear();
         bombs_map.clear();
-        explosions.get_set().clear();
         scores.get_map().clear();
-        death_this_round.clear();
+        player_deaths_this_round.clear();
     }
 
     void set_action(std::shared_ptr<Action> &action, socket_t &socket) {
@@ -154,7 +143,6 @@ public:
     auto &get_player_positions() const { return player_positions; }
     auto &get_blocks() const { return blocks; }
     auto &get_bombs() const { return bombs; }
-    auto &get_explosions() const { return explosions; }
     auto &get_scores() const { return scores; }
     auto &get_turn_duration() const { return turn_duration; }
 };

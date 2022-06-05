@@ -45,7 +45,7 @@ class GameState {
     std::map<bomb_id_t, std::shared_ptr<Bomb>> bombs_map;
     explosions_t explosions;
     players_scores_t scores;
-    std::map<player_id_t, bool> death_this_round;
+    std::map<player_id_t, bool> player_deaths_this_round;
 
 public:
     // Messages from server.
@@ -65,9 +65,9 @@ public:
 
     void before_turn() {
         explosions = Set<Position>();
-        death_this_round.clear();
+        player_deaths_this_round.clear();
         for (auto [player_id, _] : scores.get_map()) {
-            death_this_round[player_id] = false;
+            player_deaths_this_round[player_id] = false;
         }
         for (auto &bomb : bombs.get_list()) {
             bomb->timer -= 1;
@@ -77,7 +77,7 @@ public:
     void after_turn() {
         auto it = scores.get_map().begin();
         while (it != scores.get_map().end()) {
-            it->second += death_this_round[it->first];
+            it->second += player_deaths_this_round[it->first];
             it++;
         }
     }
@@ -91,7 +91,7 @@ public:
         bombs_map.clear();
         explosions.get_set().clear();
         scores.get_map().clear();
-        death_this_round.clear();
+        player_deaths_this_round.clear();
     }
 
     void set_is_joined(bool value) { is_joined = value; }
