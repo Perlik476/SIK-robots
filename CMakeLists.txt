@@ -81,7 +81,9 @@ add_executable(${SERVER_EXECUTABLE}
         src-server/data_types/events.cc
         src-server/data_types/arguments.cc
         src-server/data_types/usings.h
-        src-server/data_types/game_state.cc)
+        src-server/data_types/game_state.cc
+        src-server/messages/client_messages.cc
+        src-server/threads.h src-server/threads.cpp)
 
 find_package(Boost 1.71 COMPONENTS program_options REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})

@@ -8,135 +8,7 @@
 
 #include "includes.h"
 #include "messages.h"
-
-using thread_t = std::shared_ptr<std::thread>;
-using threads_t = std::shared_ptr<std::set<thread_t>>;
-
-class ClientInfo {
-//    threads_t senders;
-//    threads_t receivers;
-//    thread_t sender;
-//    thread_t receiver;
-    socket_t socket;
-    std::atomic_bool ended = false;
-    bool threads_set = false;
-    std::mutex mutex;
-    std::condition_variable condition;
-    bool sender = false;
-    bool receiver = false;
-
-    void check_threads_set() {
-        if (sender && receiver) {
-            threads_set = true;
-            condition.notify_all();
-        }
-    }
-
-public:
-    ClientInfo(socket_t &socket) : socket(socket) {}
-
-    void end_threads(std::atomic_int &current_connections) {
-        std::unique_lock<std::mutex> lock(mutex);
-        if (!ended) {
-            ended = true;
-            current_connections--;
-
-            boost::system::error_code err;
-            socket->close(err);
-        }
-    }
-
-    void set_sender() {
-        std::unique_lock<std::mutex> lock(mutex);
-        sender = true;
-        check_threads_set();
-    }
-
-    void set_receiver() {
-        std::unique_lock<std::mutex> lock(mutex);
-        receiver = true;
-        check_threads_set();
-    }
-
-    bool get_threads_set() {
-        return threads_set;
-    }
-
-    std::mutex &get_mutex() {
-        return mutex;
-    }
-
-    std::condition_variable &get_condition() {
-        return condition;
-    }
-
-    socket_t &get_socket() {
-        return socket;
-    }
-
-    bool get_ended() {
-        return ended;
-    }
-};
-
-void sender_fun(std::shared_ptr<ClientInfo> client_info, std::shared_ptr<GameState> &game_state,
-                std::atomic_int &current_connections) {
-    ClientState client_state;
-
-    try {
-        {
-            std::unique_lock<std::mutex> lock(client_info->get_mutex());
-            while (!client_info->get_threads_set()) {
-                client_info->get_condition().wait(lock);
-            }
-        }
-
-        for (;;) {
-            if (client_info->get_ended()) {
-//                std::cout << "return" << std::endl;
-//                client_info->end_threads(current_connections);
-                return;
-            }
-
-            auto messages = game_state->get_messages(client_state);
-            for (auto &message: messages) {
-                message->send(client_info->get_socket());
-            }
-        }
-    }
-    catch (std::exception &exception) {
-        std::cerr << exception.what() << std::endl;
-        client_info->end_threads(current_connections);
-    }
-}
-
-void receiver_fun(std::shared_ptr<ClientInfo> client_info, std::shared_ptr<GameState> &game_state,
-                  std::atomic_int &current_connections) {
-    try {
-        {
-            std::unique_lock<std::mutex> lock(client_info->get_mutex());
-            while (!client_info->get_threads_set()) {
-                client_info->get_condition().wait(lock);
-            }
-        }
-        for (;;) {
-            if (client_info->get_ended()) {
-//                std::cout << "return" << std::endl;
-//                client_info->end_threads(current_connections);
-                return;
-            }
-            BytesReceiver bytes(client_info->get_socket());
-            while (!bytes.is_end()) {
-                auto message = get_client_message(bytes);
-                message->execute(game_state, client_info->get_socket());
-            }
-        }
-    }
-    catch (std::exception &exception) {
-        std::cerr << exception.what() << std::endl;
-        client_info->end_threads(current_connections);
-    }
-}
+#include "threads.h"
 
 void acceptor_fun(std::shared_ptr<Arguments> &arguments, std::shared_ptr<GameState> &game_state,
                   boost::asio::io_context &io_context) {
@@ -157,20 +29,19 @@ void acceptor_fun(std::shared_ptr<Arguments> &arguments, std::shared_ptr<GameSta
 
                 std::cout << "Accepted" << std::endl;
 
-                auto client = std::make_shared<ClientInfo>(socket);
+                auto client_info = std::make_shared<ClientInfo>(socket);
 
-                auto sender_thread = std::make_shared<std::thread>(sender_fun, client, std::ref(game_state), std::ref(current_connections));
-                auto receiver_thread = std::make_shared<std::thread>(receiver_fun, client, std::ref(game_state), std::ref(current_connections));
+                auto receiver_thread = std::make_shared<std::thread>(receiver_fun, client_info, std::ref(game_state),
+                                                                     std::ref(current_connections));
 
                 // TODO
-                sender_thread->detach();
                 receiver_thread->detach();
 
 //                senders->insert(sender_thread);
 //                receivers->insert(receiver_thread);
 
-                client->set_sender();
-                client->set_receiver();
+                client_info->set_sender();
+                client_info->set_receiver();
 
                 std::cout << "connections: " << (int) current_connections<< std::endl;
             }
