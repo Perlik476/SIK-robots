@@ -65,4 +65,7 @@ enum Direction: char {
 
 Direction get_direction(Bytes &bytes);
 
+class String;
+String socket_to_string(socket_t &socket);
+
 #endif //ROBOTS_DEFINITIONS_H

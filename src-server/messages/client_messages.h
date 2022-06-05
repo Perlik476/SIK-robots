@@ -3,6 +3,7 @@
 
 #include "../includes.h"
 #include "server_messages.h"
+#include "../data_types/definitions.h"
 
 enum ClientMessageType: char {
     Join,
@@ -119,9 +120,7 @@ private:
 public:
     MoveMessage(Bytes &bytes) : direction(get_direction(bytes)) {}
 
-    void execute(std::shared_ptr<GameState> &game_state, [[maybe_unused]] std::shared_ptr<ClientInfo> &client_info) override {
-        std::cout << "Move: " << direction << std::endl;
-    }
+    void execute(std::shared_ptr<GameState> &game_state, std::shared_ptr<ClientInfo> &client_info) override;
 };
 
 #endif //ROBOTS_CLIENT_MESSAGES_H

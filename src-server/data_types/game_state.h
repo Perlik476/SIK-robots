@@ -14,6 +14,7 @@
 #include "arguments.h"
 #include "usings.h"
 #include "events.h"
+#include "action.h"
 #include <random>
 
 class ServerMessage;
@@ -71,13 +72,17 @@ class GameState {
     players_scores_t scores;
     std::map<player_id_t, bool> death_this_round;
 
-    std::map<player_id_t, std::shared_ptr<ClientMessage>> players_action;
+    std::map<player_id_t, std::shared_ptr<Action>> players_action;
     std::vector<std::shared_ptr<ServerMessage>> accepted_players_to_send;
     std::vector<std::shared_ptr<ServerMessage>> turn_messages;
 
     void start_game();
 
 public:
+    friend MoveAction;
+    friend PlaceBombAction;
+    friend PlaceBlockAction;
+
     GameState(std::shared_ptr<Arguments> &arguments) : server_name(arguments->server_name),
         players_count(arguments->players_count), size_x(arguments->size_x), size_y(arguments->size_y),
         game_length(arguments->game_length), explosion_radius(arguments->explosion_radius),
@@ -85,10 +90,6 @@ public:
         turn_duration(arguments->turn_duration) {
 
         random = std::minstd_rand(seed);
-    }
-
-    void set_action(player_id_t &player_id, std::shared_ptr<ClientMessage> &client_message) {
-        players_action[player_id] = client_message;
     }
 
     void try_add_player(const String &player_name, const String &address);
@@ -122,6 +123,16 @@ public:
         explosions.get_set().clear();
         scores.get_map().clear();
         death_this_round.clear();
+    }
+
+    void set_action(std::shared_ptr<Action> &action, socket_t &socket) {
+        auto endpoint = socket_to_string(socket);
+        for (auto &[id, player]: players.get_map()) {
+            if (player.get_address().get_string() == endpoint.get_string()) {
+                players_action[id] = action;
+                return;
+            }
+        }
     }
 
     void next_turn();

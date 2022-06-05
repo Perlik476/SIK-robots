@@ -54,11 +54,10 @@ void GameState::next_turn() {
         PointerList<Event> events;
 
         for (uint8_t id = 0; id < players_count.get_value(); id++) {
-            std::cout << "id: " << id << std::endl;
-            auto &position = player_positions.get_map()[id];
-            position = position.right();
-            auto id_temp = player_id_t(id);
-            events.get_list().push_back(std::make_shared<PlayerMovedEvent>(id_temp, position));
+            if (players_action.contains(id)) {
+                events.get_list().push_back(players_action[id]->execute(this, id));
+                players_action.erase(id);
+            }
         }
 
         turn_messages.push_back(std::make_shared<TurnMessage>(turn, events));
