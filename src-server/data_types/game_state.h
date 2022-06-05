@@ -114,10 +114,11 @@ public:
     }
 
     void reset() {
+        // TODO
         turn = 0;
         players.get_map().clear();
         player_positions.get_map().clear();
-        blocks.get_list().clear();
+        blocks.get_set().clear();
         bombs.get_list().clear();
         bombs_map.clear();
         explosions.get_set().clear();

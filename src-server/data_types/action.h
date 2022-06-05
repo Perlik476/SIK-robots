@@ -22,12 +22,14 @@ public:
     std::shared_ptr<Event> execute(GameState *game_state, uint8_t &player_id) override;
 };
 
-class PlaceBombAction {
-
+class PlaceBombAction : public Action {
+public:
+    std::shared_ptr<Event> execute(GameState *game_state, uint8_t &player_id) override;
 };
 
-class PlaceBlockAction {
-
+class PlaceBlockAction : public Action {
+public:
+    std::shared_ptr<Event> execute(GameState *game_state, uint8_t &player_id) override;
 };
 
 #endif //ROBOTS_ACTION_H

@@ -35,10 +35,22 @@ void GameState::start_game() {
 
     for (uint8_t id = 0; id < players_count.get_value(); id++) {
         auto position = Position(random() % size_x.get_value(), random() % size_y.get_value());
+
         player_positions.get_map()[id] = position;
         auto id_temp = player_id_t(id);
+
         auto event = std::make_shared<PlayerMovedEvent>(id_temp, position);
         events.get_list().push_back(event);
+    }
+
+    for (uint16_t i = 0; i < initial_blocks; i++) {
+        auto position = Position(random() % size_x.get_value(), random() % size_y.get_value());
+
+        if (!blocks.get_set().contains(position)) {
+            blocks.get_set().insert(position);
+            auto event = std::make_shared<BlockPlacedEvent>(position);
+            events.get_list().push_back(event);
+        }
     }
 
     turn_messages.push_back(std::make_shared<TurnMessage>(turn, events));
@@ -55,8 +67,11 @@ void GameState::next_turn() {
 
         for (uint8_t id = 0; id < players_count.get_value(); id++) {
             if (players_action.contains(id)) {
-                events.get_list().push_back(players_action[id]->execute(this, id));
-                players_action.erase(id);
+                auto action = players_action[id];
+                if (action) {
+                    events.get_list().push_back(action->execute(this, id));
+                    players_action.erase(id);
+                }
             }
         }
 
