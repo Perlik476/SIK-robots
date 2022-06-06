@@ -26,7 +26,10 @@ public:
     explicit BombPlacedEvent(bomb_id_t &id, Position &position) : id(id), position(position) {}
 
     Bytes serialize() const override {
-        return Bytes(EventType::BombPlaced) + id.serialize() + position.serialize();
+        std::cout << "BombPlacedEvent serializing" << std::endl;
+        auto bytes = Bytes(EventType::BombPlaced) + id.serialize() + position.serialize();
+        std::cout << "BombPlacedEvent serialized" << std::endl;
+        return bytes;
     }
 };
 
@@ -39,8 +42,11 @@ public:
         : id(id), robots_destroyed(robots_destroyed), blocks_destroyed(blocks_destroyed) {}
 
     Bytes serialize() const override {
-        return Bytes(EventType::BombExploded) + id.serialize() + robots_destroyed.serialize()
+        std::cout << "BombExplodedEvent serializing" << std::endl;
+        auto bytes = Bytes(EventType::BombExploded) + id.serialize() + robots_destroyed.serialize()
             + blocks_destroyed.serialize();
+        std::cout << "BombExplodedEvent serialized" << std::endl;
+        return bytes;
     }
 };
 
@@ -52,7 +58,10 @@ public:
     explicit PlayerMovedEvent(player_id_t &id, Position &position) : id(id), position(position) {}
 
     Bytes serialize() const override {
-        return Bytes(EventType::PlayerMoved) + id.serialize() + position.serialize();
+        std::cout << "PlayerMovedEvent serializing" << std::endl;
+        auto bytes = Bytes(EventType::PlayerMoved) + id.serialize() + position.serialize();
+        std::cout << "PlayerMovedEvent serialized" << std::endl;
+        return bytes;
     }
 };
 
@@ -63,7 +72,10 @@ public:
     explicit BlockPlacedEvent(Position &position) : position(position) {}
 
     Bytes serialize() const override {
-        return Bytes(EventType::BlockPlaced) + position.serialize();
+        std::cout << "BlockPlacedEvent serializing" << std::endl;
+        auto bytes = Bytes(EventType::BlockPlaced) + position.serialize();
+        std::cout << "BlockPlacedEvent serialized" << std::endl;
+        return bytes;
     }
 };
 

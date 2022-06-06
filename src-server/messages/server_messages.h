@@ -91,8 +91,10 @@ public:
     TurnMessage(turn_t &turn, PointerList<Event> &events) : turn(turn), events(events) {}
 
     Bytes serialize() const override {
-        std::cout << "TurnMessage" << std::endl;
-        return Bytes(get_identifier()) + turn.serialize() + events.serialize();
+        std::cout << "TurnMessage: events size = " << events.get_list().size() << std::endl;
+        auto bytes = Bytes(get_identifier()) + turn.serialize() + events.serialize();
+        std::cout << "TurnMessage serialized" << std::endl;
+        return bytes;
     }
 };
 

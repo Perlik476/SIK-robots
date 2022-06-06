@@ -153,7 +153,10 @@ void GameState::next_turn() {
                 if (players_action.contains(id)) {
                     auto action = players_action[id];
                     if (action) {
-                        events.get_list().push_back(action->execute(this, id));
+                        auto event = action->execute(this, id);
+                        if (event != nullptr) {
+                            events.get_list().push_back(event);
+                        }
                         players_action.erase(id);
                     }
                 }

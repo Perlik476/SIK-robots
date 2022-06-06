@@ -116,6 +116,7 @@ public:
     }
 
     void set_action(std::shared_ptr<Action> &action, socket_t &socket) {
+        std::unique_lock<std::mutex> lock(mutex);
         auto endpoint = socket_to_string(socket);
         for (auto &[id, player]: players.get_map()) {
             if (player.get_address().get_string() == endpoint.get_string()) {
