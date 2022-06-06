@@ -108,17 +108,11 @@ void GameState::next_turn() {
     player_deaths_this_round.clear();
     blocks_destroyed_this_round.clear();
 
-    if (is_ended) {
-        game_number++;
-        reset();
-    }
-
     if (is_started) {
-        if (turn.get_value() == game_length) {
+        if (turn == game_length) {
             is_ended = true;
-//            return;
+            return;
         }
-
         PointerList<Event> events;
 
         std::set<bomb_id_t> bombs_to_remove;
@@ -199,6 +193,10 @@ void GameState::send_next() {
         }
 
         is_sending = false;
+        if (is_ended) {
+            game_number++;
+            reset();
+        }
         sending_ended.notify_all();
     }
 
