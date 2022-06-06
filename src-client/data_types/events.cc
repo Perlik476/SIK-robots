@@ -2,7 +2,6 @@
 #include "game_state.h"
 
 void BombPlacedEvent::execute(GameState &game_state, [[maybe_unused]] SocketsInfo &sockets_info) {
-    std::cout << "BOMB PLACED" << std::endl;
     auto bomb = std::make_shared<Bomb>(position, game_state.bomb_timer);
     game_state.bombs.get_list().push_back(bomb);
     game_state.bombs_map[id] = bomb;
@@ -77,10 +76,7 @@ void BombExplodedEvent::execute(GameState &game_state, [[maybe_unused]] SocketsI
     auto bomb_exploded = game_state.bombs_map[id];
     auto bomb_position = bomb_exploded->position;
 
-    std::cout << "BOMB EXPLODED" << std::endl;
-    std::cout << "bombs: " << game_state.bombs.get_list().size() << std::endl;
     remove_bomb(game_state, bomb_exploded);
-    std::cout << "bombs after: " << game_state.bombs.get_list().size() << std::endl;
 
     set_dead_players(game_state);
 

@@ -111,13 +111,12 @@ void GameState::next_turn() {
     if (is_ended) {
         game_number++;
         reset();
-        return;
     }
 
     if (is_started) {
         if (turn.get_value() == game_length) {
             is_ended = true;
-            return;
+//            return;
         }
 
         PointerList<Event> events;
@@ -232,7 +231,7 @@ std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages(ClientState 
     std::vector<std::shared_ptr<ServerMessage>> messages;
 
     if (client_state.get_game_number() != game_number) {
-        std::cout << "RESET" << std::endl;
+        std::cout << "reset" << std::endl;
         client_state.reset();
         client_state.set_game_number(game_number);
     }
@@ -262,7 +261,7 @@ std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages(ClientState 
     }
 
     if (is_ended && !client_state.get_game_ended_sent()) {
-        std::cout << "GAME ENDED" << std::endl;
+        std::cout << "game ended" << std::endl;
         messages.push_back(std::make_shared<GameEndedMessage>(scores));
         client_state.set_game_ended_sent();
     }

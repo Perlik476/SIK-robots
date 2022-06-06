@@ -3,9 +3,14 @@
 
 std::shared_ptr<Event> MoveAction::execute(GameState *game_state, uint8_t &player_id) {
     auto &position = game_state->player_positions.get_map()[player_id];
+    auto &blocks = game_state->blocks.get_set();
     if (position.is_next_proper(direction, game_state->get_size_x(), game_state->get_size_y())) {
-        position = position.next(direction);
+        auto next_position = position.next(direction);
+        if (!std::all_of(blocks.begin(), blocks.end(), [&next_position](auto &block){ return block != next_position; })) {
+            return nullptr;
+        }
 
+        position = next_position;
         auto id_temp = player_id_t(player_id);
 
         return std::make_shared<PlayerMovedEvent>(id_temp, position);
