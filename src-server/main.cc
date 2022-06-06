@@ -30,9 +30,10 @@ void acceptor_fun(std::shared_ptr<Arguments> &arguments, std::shared_ptr<GameSta
 
                 auto receiver_thread = std::make_shared<std::thread>(receiver_fun, client_info, std::ref(game_state),
                                                                      std::ref(current_connections));
-
-                // TODO
                 receiver_thread->detach();
+
+                auto sender_thread = std::make_shared<std::thread>(sender_fun, client_info, std::ref(game_state));
+                sender_thread->detach();
 
                 client_info->set_sender();
                 client_info->set_receiver();

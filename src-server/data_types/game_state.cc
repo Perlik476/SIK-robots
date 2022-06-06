@@ -152,7 +152,7 @@ void GameState::next_turn() {
         }
 
         for (uint8_t id = 0; id < players_count.get_value(); id++) {
-            std::cout << "PLAYER ID = " << id << std::endl;
+            std::cout << "PLAYER ID = " << (int) id << std::endl;
             if (player_deaths_this_round.contains(id)) {
                 auto position = get_random_position();
                 player_positions.get_map()[id] = position;
