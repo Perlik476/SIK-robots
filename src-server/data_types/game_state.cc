@@ -30,7 +30,6 @@ void GameState::try_add_player(const String &player_name, const String &address)
 }
 
 void GameState::start_game() {
-    turn = 0;
     PointerList<Event> events;
 
     for (uint8_t id = 0; id < players_count.get_value(); id++) {
@@ -109,7 +108,18 @@ void GameState::next_turn() {
     player_deaths_this_round.clear();
     blocks_destroyed_this_round.clear();
 
+    if (is_ended) {
+        game_number++;
+        reset();
+        return;
+    }
+
     if (is_started) {
+        if (turn.get_value() == game_length) {
+            is_ended = true;
+            return;
+        }
+
         PointerList<Event> events;
 
         std::set<bomb_id_t> bombs_to_remove;
@@ -143,11 +153,13 @@ void GameState::next_turn() {
         }
 
         for (uint8_t id = 0; id < players_count.get_value(); id++) {
+            std::cout << "PLAYER ID = " << id << std::endl;
             if (player_deaths_this_round.contains(id)) {
                 auto position = get_random_position();
                 player_positions.get_map()[id] = position;
                 auto id_temp = player_id_t(id);
                 events.get_list().push_back(std::make_shared<PlayerMovedEvent>(id_temp, position));
+                scores.get_map()[id] += 1;
             }
             else {
                 if (players_action.contains(id)) {
@@ -219,6 +231,12 @@ std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages(ClientState 
     std::cout << "messages" << std::endl;
     std::vector<std::shared_ptr<ServerMessage>> messages;
 
+    if (client_state.get_game_number() != game_number) {
+        std::cout << "RESET" << std::endl;
+        client_state.reset();
+        client_state.set_game_number(game_number);
+    }
+
     auto accepted_players_iterator = accepted_players_to_send.begin() + client_state.get_accepted_players_sent();
     std::cout << "accepted players sent: " << client_state.get_accepted_players_sent() << std::endl;
     while (accepted_players_iterator != accepted_players_to_send.end()) {
@@ -241,6 +259,12 @@ std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages(ClientState 
         messages.push_back(*turn_messages_iterator);
         turn_messages_iterator++;
         client_state.increase_turns_sent(1);
+    }
+
+    if (is_ended && !client_state.get_game_ended_sent()) {
+        std::cout << "GAME ENDED" << std::endl;
+        messages.push_back(std::make_shared<GameEndedMessage>(scores));
+        client_state.set_game_ended_sent();
     }
 
     how_many_to_send--;

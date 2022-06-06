@@ -98,4 +98,19 @@ public:
     }
 };
 
+class GameEndedMessage : public ServerMessage {
+    char get_identifier() const override {
+        return 4;
+    }
+
+    players_scores_t scores;
+public:
+    GameEndedMessage(players_scores_t &scores) : scores(scores) {}
+
+    Bytes serialize() const override {
+        std::cout << "GameEnded" << std::endl;
+        return Bytes(get_identifier()) + scores.serialize();
+    }
+};
+
 #endif //ROBOTS_SERVER_MESSAGES_H

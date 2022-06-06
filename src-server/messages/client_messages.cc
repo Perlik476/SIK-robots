@@ -6,7 +6,6 @@ void JoinMessage::execute(std::shared_ptr<GameState> &game_state, std::shared_pt
     std::cout << "Join: " << name.get_string() << std::endl;
 
     game_state->try_add_player(name, socket_to_string(client_info->get_socket()));
-    HelloMessage(game_state).send(client_info->get_socket());
 
     auto sender_thread = std::make_shared<std::thread>(sender_fun, client_info, std::ref(game_state));
 

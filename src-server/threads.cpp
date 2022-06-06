@@ -12,6 +12,8 @@ void sender_fun(std::shared_ptr<ClientInfo> client_info, std::shared_ptr<GameSta
             }
         }
 
+        HelloMessage(game_state).send(client_info->get_socket());
+
         for (;;) {
             if (client_info->get_ended()) {
 //                std::cout << "return" << std::endl;
@@ -22,6 +24,9 @@ void sender_fun(std::shared_ptr<ClientInfo> client_info, std::shared_ptr<GameSta
             auto messages = game_state->get_messages(client_state);
             for (auto &message: messages) {
                 message->send(client_info->get_socket());
+            }
+            if (client_state.get_game_ended_sent()) {
+                return;
             }
         }
     }

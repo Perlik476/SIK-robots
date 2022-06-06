@@ -21,11 +21,11 @@ class ServerMessage;
 class ClientMessage;
 
 class ClientState {
+    uint64_t game_number = 0;
     int accepted_players_sent = 0;
     bool game_started_sent = false;
     int turns_sent = 0;
     bool game_ended_sent = false;
-
 
 public:
     ClientState() = default;
@@ -33,15 +33,28 @@ public:
     int get_accepted_players_sent() { return accepted_players_sent; }
     int get_turns_sent() { return turns_sent; }
     bool get_game_started_sent() { return game_started_sent; }
+    bool get_game_ended_sent() { return game_ended_sent; }
+    uint64_t get_game_number() { return game_number; }
 
     void increase_accepted_players_sent(int inc) { accepted_players_sent += inc; }
     void increase_turns_sent(int inc) { turns_sent += inc; }
     void set_game_started_sent() { game_started_sent = true; }
+    void set_game_ended_sent() { game_ended_sent = true; }
+    void set_game_number(uint64_t game_number) { this->game_number = game_number; }
+
+    void reset() {
+        accepted_players_sent = 0;
+        turns_sent = 0;
+        game_started_sent = false;
+        game_ended_sent = false;
+    }
 };
 
 class GameState {
     bool is_started = false;
+    bool is_ended = false;
     uint8_t next_player_id = 0;
+    uint64_t game_number = 0;
 
     std::atomic_bool is_sending = false;
     std::mutex mutex;
@@ -63,7 +76,7 @@ class GameState {
     explosion_radius_t explosion_radius;
     bomb_timer_t bomb_timer;
     players_t players;
-    turn_t turn;
+    turn_t turn = 0;
     players_positions_t player_positions;
     blocks_t blocks;
     bombs_t bombs;
@@ -87,6 +100,28 @@ class GameState {
     void add_explosion(const Position &bomb_position, List<player_id_t> &robots_destroyed,
                        List<Position> &blocks_destroyed);
 
+    void reset() {
+        // TODO
+        turn = 0;
+        next_player_id = 0;
+        players.get_map().clear();
+        player_positions.get_map().clear();
+        blocks.get_set().clear();
+        bombs.get_list().clear();
+        bombs_map.clear();
+        scores.get_map().clear();
+        player_deaths_this_round.clear();
+        blocks_destroyed_this_round.clear();
+        next_bomb_id = 0;
+        players_action.clear();
+
+        accepted_players_to_send.clear();
+        turn_messages.clear();
+
+        is_started = false;
+        is_ended = false;
+    }
+
 public:
     friend MoveAction;
     friend PlaceBombAction;
@@ -102,18 +137,6 @@ public:
     }
 
     void try_add_player(const String &player_name, const String &address);
-
-    void reset() {
-        // TODO
-        turn = 0;
-        players.get_map().clear();
-        player_positions.get_map().clear();
-        blocks.get_set().clear();
-        bombs.get_list().clear();
-        bombs_map.clear();
-        scores.get_map().clear();
-        player_deaths_this_round.clear();
-    }
 
     void set_action(std::shared_ptr<Action> &action, socket_t &socket) {
         std::unique_lock<std::mutex> lock(mutex);

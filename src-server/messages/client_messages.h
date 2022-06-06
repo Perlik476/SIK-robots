@@ -13,13 +13,8 @@ enum ClientMessageType: char {
 };
 
 using thread_t = std::shared_ptr<std::thread>;
-using threads_t = std::shared_ptr<std::set<thread_t>>;
 
 class ClientInfo {
-//    threads_t senders;
-//    threads_t receivers;
-//    thread_t sender;
-//    thread_t receiver;
     socket_t socket;
     std::atomic_bool ended = false;
     bool threads_set = false;
@@ -96,7 +91,7 @@ public:
 
 class PlaceBombMessage : public ClientMessage {
 public:
-    explicit PlaceBombMessage() = default;
+    explicit PlaceBombMessage() { std::cout << "PLACE BOMB" << std::endl; }
 
     void execute(std::shared_ptr<GameState> &game_state, std::shared_ptr<ClientInfo> &client_info) override;
 };
