@@ -4,6 +4,7 @@ namespace po = boost::program_options;
 
 void Arguments::parse_arguments(int argc, char *argv[]) {
     uint16_t players_count_temp;
+    seed = static_cast<uint32_t>(std::chrono::system_clock::now().time_since_epoch().count());
 
     po::options_description desc("Allowed options");
     desc.add_options()
