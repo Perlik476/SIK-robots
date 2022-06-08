@@ -29,9 +29,7 @@ void Arguments::parse_arguments(int argc, char *argv[]) {
 
     po::notify(vm);
 
-    if (players_count_temp > UINT8_MAX) {
-        // TODO
-    }
+    check_correctness(players_count_temp);
 
     players_count = static_cast<uint8_t>(players_count_temp);
 }

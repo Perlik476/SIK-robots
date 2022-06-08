@@ -209,7 +209,7 @@ void GameState::send_next() {
 //    std::cout << "send_next end" << std::endl;
 }
 
-std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages(ClientState &client_state) {
+std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages_to_send(ClientState &client_state) {
     if (is_sending) {
         {
             std::unique_lock<std::mutex> lock(mutex);
@@ -221,7 +221,7 @@ std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages(ClientState 
     sending_ended.notify_all();
 
     how_many_to_send++;
-//    std::cout << "get_messages" << std::endl;
+//    std::cout << "get_messages_to_send" << std::endl;
     {
         std::unique_lock<std::mutex> lock(mutex);
         while (!is_sending) {
@@ -275,7 +275,7 @@ std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages(ClientState 
         sending_ended.notify_all();
     }
 
-    std::cout << "get_messages end" << std::endl;
+    std::cout << "get_messages_to_send end" << std::endl;
 
     return messages;
 }

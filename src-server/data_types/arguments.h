@@ -4,10 +4,15 @@
 #include "definitions.h"
 
 class ArgumentsParsingFailed : public std::exception {
+    std::string message = "Arguments parsing failed.";
 public:
     const char *what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_NOTHROW override {
-        return "Arguments parsing failed.";
+        return message.c_str();
     }
+
+    ArgumentsParsingFailed() = default;
+
+    ArgumentsParsingFailed(const std::string &message) : message(message) {}
 };
 
 class Arguments {
@@ -21,35 +26,20 @@ class Arguments {
         return s.length() < 256;
     }
 
+    static bool is_proper_uint8(uint16_t x) {
+        return x <= UINT8_MAX;
+    }
+
     void parse_arguments(int argc, char *argv[]);
 
 public:
-    // TODO
-    static std::pair<std::string, std::string> process_address(std::string &address) {
-        int length = (int) address.length();
-
-        std::string address_pure, port_str;
-
-        for (int i = length - 1; i >= 0; i--) {
-            char c = address[(size_t) i];
-            if (c == ':') {
-                for (size_t j = 0; j < (size_t) i; j++) {
-                    address_pure += address[j];
-                }
-                break;
-            }
-            if (c < '0' || c > '9') {
-                throw ArgumentsParsingFailed();
-            }
-            port_str += c;
+    void check_correctness(uint16_t players_count_temp) {
+        if (!is_proper_string(server_name)) {
+            throw ArgumentsParsingFailed("Server name is too long.");
         }
-        std::reverse(port_str.begin(), port_str.end());
-
-        return { address_pure, port_str };
-    }
-
-    bool check_correctness() {
-        return is_proper_string(server_name);
+        if (!is_proper_uint8(players_count_temp)) {
+            throw ArgumentsParsingFailed("players-count is too big.");
+        }
     }
 
 public:

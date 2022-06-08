@@ -153,7 +153,7 @@ public:
 
     void send_next();
 
-    std::vector<std::shared_ptr<ServerMessage>> get_messages(ClientState &client_state);
+    std::vector<std::shared_ptr<ServerMessage>> get_messages_to_send(ClientState &client_state);
 
     auto &get_server_name() const { return server_name; }
     auto &get_players_count() const { return players_count; }
