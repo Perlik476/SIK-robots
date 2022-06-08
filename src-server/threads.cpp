@@ -1,8 +1,8 @@
 #include "threads.h"
 #include "messages.h"
 
-void acceptor_fun(std::shared_ptr<Arguments> &arguments, std::shared_ptr<GameState> &game_state,
-                  boost::asio::io_context &io_context, tcp::acceptor &acceptor) {
+void acceptor_fun(std::shared_ptr<GameState> &game_state, boost::asio::io_context &io_context,
+                  tcp::acceptor &acceptor) {
     try {
         std::atomic_int current_connections = 0;
         const int max_connections = 25;

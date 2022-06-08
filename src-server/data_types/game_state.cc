@@ -23,9 +23,8 @@ void GameState::try_add_player(const String &player_name, const String &address)
     accepted_players_to_send.push_back(std::make_shared<AcceptedPlayerMessage>(id, player));
     next_player_id++;
 
-    if (players.get_map().size() == players_count) {
+    if (next_player_id == players_count) {
         is_started = true;
-//        start_game();
     }
 }
 

@@ -14,13 +14,13 @@ void MoveMessage::execute(std::shared_ptr<GameState> &game_state, std::shared_pt
     game_state->set_action(action, client_info->get_socket());
 }
 
-void PlaceBombMessage::execute(std::shared_ptr<GameState> &game_state, [[maybe_unused]] std::shared_ptr<ClientInfo> &client_info) {
+void PlaceBombMessage::execute(std::shared_ptr<GameState> &game_state, std::shared_ptr<ClientInfo> &client_info) {
     std::cout << "PlaceBomb" << std::endl;
     std::shared_ptr<Action> action = std::make_shared<PlaceBombAction>();
     game_state->set_action(action, client_info->get_socket());
 }
 
-void PlaceBlockMessage::execute(std::shared_ptr<GameState> &game_state, [[maybe_unused]] std::shared_ptr<ClientInfo> &client_info) {
+void PlaceBlockMessage::execute(std::shared_ptr<GameState> &game_state, std::shared_ptr<ClientInfo> &client_info) {
     std::cout << "PlaceBlock" << std::endl;
     std::shared_ptr<Action> action = std::make_shared<PlaceBlockAction>();
     game_state->set_action(action, client_info->get_socket());
