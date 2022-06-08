@@ -10,6 +10,8 @@ void acceptor_fun(std::shared_ptr<Arguments> &arguments, std::shared_ptr<GameSta
             if (current_connections < max_connections) {
                 auto socket = std::make_shared<tcp::socket>(io_context);
                 acceptor.accept(*socket);
+                tcp::no_delay option(true);
+                socket->set_option(option);
 
                 current_connections++;
 
