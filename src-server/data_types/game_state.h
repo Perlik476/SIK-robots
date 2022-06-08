@@ -169,6 +169,8 @@ public:
     auto &get_bombs() const { return bombs; }
     auto &get_scores() const { return scores; }
     auto &get_turn_duration() const { return turn_duration; }
+
+    bool get_is_started() const { return is_started; }
 };
 
 #endif //ROBOTS_GAME_STATE_H

@@ -25,7 +25,7 @@ void GameState::try_add_player(const String &player_name, const String &address)
 
     if (players.get_map().size() == players_count) {
         is_started = true;
-        start_game();
+//        start_game();
     }
 }
 
@@ -109,8 +109,9 @@ void GameState::next_turn() {
     blocks_destroyed_this_round.clear();
 
     if (is_started) {
-        if (turn == game_length) {
-            is_ended = true;
+        if (turn == 0) {
+            start_game();
+            turn += 1;
             return;
         }
         PointerList<Event> events;
@@ -168,9 +169,14 @@ void GameState::next_turn() {
             }
         }
 
-        turn += 1;
-
         turn_messages.push_back(std::make_shared<TurnMessage>(turn, events));
+
+        if (turn == game_length.get_value()) {
+            is_ended = true;
+            return;
+        }
+
+        turn += 1;
     }
 
     std::cout << "next turn end" << std::endl;
