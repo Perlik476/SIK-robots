@@ -91,7 +91,7 @@ public:
 
 class PlaceBombMessage : public ClientMessage {
 public:
-    explicit PlaceBombMessage() { std::cout << "PLACE BOMB" << std::endl; }
+    explicit PlaceBombMessage() = default;
 
     void execute(std::shared_ptr<GameState> &game_state, std::shared_ptr<ClientInfo> &client_info) override;
 };

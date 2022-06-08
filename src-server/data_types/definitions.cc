@@ -13,6 +13,7 @@ Direction get_direction(Bytes &bytes) {
 String socket_to_string(socket_t &socket) {
     auto endpoint = socket->remote_endpoint();
     std::stringstream ss;
-    ss << "[" << endpoint.address().to_string() << "]:" << endpoint.port();
+//    ss << "[" << endpoint.address().to_string() << "]:" << endpoint.port();
+    ss << endpoint;
     return String(ss.str());
 }

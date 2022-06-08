@@ -127,11 +127,11 @@ public:
     friend PlaceBombAction;
     friend PlaceBlockAction;
 
-    GameState(std::shared_ptr<Arguments> &arguments) : server_name(arguments->server_name),
-        players_count(arguments->players_count), size_x(arguments->size_x), size_y(arguments->size_y),
-        game_length(arguments->game_length), explosion_radius(arguments->explosion_radius),
-        bomb_timer(arguments->bomb_timer), initial_blocks(arguments->initial_blocks), seed(arguments->seed),
-        turn_duration(arguments->turn_duration) {
+    GameState(std::shared_ptr<Arguments> &arguments) : initial_blocks(arguments->initial_blocks),
+        seed(arguments->seed), turn_duration(arguments->turn_duration), server_name(arguments->server_name),
+        players_count(arguments->players_count), size_x(arguments->size_x),
+        size_y(arguments->size_y), game_length(arguments->game_length), explosion_radius(arguments->explosion_radius),
+        bomb_timer(arguments->bomb_timer) {
 
         random = std::minstd_rand(seed);
     }

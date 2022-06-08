@@ -11,12 +11,10 @@
 #include "threads.h"
 
 void acceptor_fun(std::shared_ptr<Arguments> &arguments, std::shared_ptr<GameState> &game_state,
-                  boost::asio::io_context &io_context) {
-    tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v6(), arguments->get_port()));
-
-    std::atomic_int current_connections = 0;
-    const int max_connections = 25;
+                  boost::asio::io_context &io_context, tcp::acceptor &acceptor) {
     try {
+        std::atomic_int current_connections = 0;
+        const int max_connections = 25;
         for (;;) {
             if (current_connections < max_connections) {
                 auto socket = std::make_shared<tcp::socket>(io_context);
@@ -43,11 +41,8 @@ void acceptor_fun(std::shared_ptr<Arguments> &arguments, std::shared_ptr<GameSta
         }
     }
     catch (std::exception &exception) {
-        std::cerr << "wtf xd" << std::endl;
         std::cerr << exception.what() << std::endl;
     }
-
-    std::cout << "exit" << std::endl;
 }
 
 void main_loop(std::shared_ptr<GameState> &game_state, boost::asio::io_context &io_context) {
@@ -61,6 +56,7 @@ void main_loop(std::shared_ptr<GameState> &game_state, boost::asio::io_context &
 
 int main(int argc, char *argv[]) {
     std::shared_ptr<Arguments> arguments;
+
     try {
         arguments = std::make_shared<Arguments>(argc, argv);
     }
@@ -74,16 +70,23 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    std::cout << "OK\n";
-
     auto game_state = std::make_shared<GameState>(arguments);
     boost::asio::io_context io_context;
 
-    std::thread main_thread{main_loop, std::ref(game_state), std::ref(io_context)};
-    std::thread acceptor_thread{acceptor_fun, std::ref(arguments), std::ref(game_state), std::ref(io_context)};
+    try {
+        tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v6(), arguments->get_port()));
 
-    acceptor_thread.join();
-    main_thread.join();
+        std::thread main_thread{main_loop, std::ref(game_state), std::ref(io_context)};
+        std::thread acceptor_thread{acceptor_fun, std::ref(arguments), std::ref(game_state), std::ref(io_context),
+                                    std::ref(acceptor)};
+
+        main_thread.detach();
+
+        acceptor_thread.join();
+    }
+    catch (std::exception &exception) {
+        std::cerr << exception.what() << std::endl;
+    }
 
     return 1;
 }

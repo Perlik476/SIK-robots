@@ -74,7 +74,6 @@ add_executable(${SERVER_EXECUTABLE}
         src-server/data_types/bomb.h
         src-server/data_types/game_state.h
         src-server/data_types/events.h
-        src-server/data_types/sockets_info.h
         src-server/data_types/arguments.h
         src-server/data_types/threads_info.h
         src-server/data_types/definitions.h
