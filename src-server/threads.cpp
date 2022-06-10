@@ -40,8 +40,9 @@ void acceptor_fun(std::shared_ptr<GameState> &game_state, boost::asio::io_contex
 
 void main_loop(std::shared_ptr<GameState> &game_state, boost::asio::io_context &io_context) {
     for (;;) {
-        boost::asio::steady_timer timer(io_context, boost::asio::chrono::milliseconds(game_state->get_turn_duration()));
-        timer.wait();
+//        boost::asio::steady_timer timer(io_context, boost::asio::chrono::milliseconds(game_state->get_turn_duration()));
+//        timer.wait();
+        game_state->wait();
         game_state->next_turn();
         game_state->send_next();
     }
@@ -62,8 +63,6 @@ void sender_fun(std::shared_ptr<ClientInfo> client_info, std::shared_ptr<GameSta
 
         for (;;) {
             if (client_info->get_ended()) {
-//                std::cout << "return" << std::endl;
-//                client_info->end_threads(current_connections);
                 return;
             }
 
@@ -90,8 +89,6 @@ void receiver_fun(std::shared_ptr<ClientInfo> client_info, std::shared_ptr<GameS
         }
         for (;;) {
             if (client_info->get_ended()) {
-//                std::cout << "return" << std::endl;
-//                client_info->end_threads(current_connections);
                 current_connections--;
                 return;
             }

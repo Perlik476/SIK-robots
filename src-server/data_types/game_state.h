@@ -40,7 +40,7 @@ public:
     void increase_turns_sent(int inc) { turns_sent += inc; }
     void set_game_started_sent() { game_started_sent = true; }
     void set_game_ended_sent() { game_ended_sent = true; }
-    void set_game_number(uint64_t game_number) { this->game_number = game_number; }
+    void set_game_number(uint64_t new_game_number) { this->game_number = new_game_number; }
 
     void reset() {
         accepted_players_sent = 0;
@@ -58,6 +58,7 @@ class GameState {
 
     std::atomic_bool is_sending = false;
     std::mutex mutex;
+    std::condition_variable main_loop;
     std::condition_variable sending_condition;
     std::condition_variable sending_ended;
     std::atomic_int how_many_to_send = 0;
@@ -153,6 +154,8 @@ public:
     void next_turn();
 
     void send_next();
+
+    void wait();
 
     std::vector<std::shared_ptr<ServerMessage>> get_messages_to_send(ClientState &client_state);
 

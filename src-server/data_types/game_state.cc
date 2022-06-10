@@ -23,9 +23,11 @@ void GameState::try_add_player(const String &player_name, const String &address)
     accepted_players_to_send.push_back(std::make_shared<AcceptedPlayerMessage>(id, player));
     next_player_id++;
 
-    if (next_player_id == players_count) {
+    if (players.get_map().size() == players_count.get_value()) {
         is_started = true;
     }
+
+    main_loop.notify_all();
 }
 
 void GameState::start_game() {
@@ -277,4 +279,9 @@ std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages_to_send(Clie
     std::cout << "get_messages_to_send end" << std::endl;
 
     return messages;
+}
+
+void GameState::wait() {
+    std::unique_lock<std::mutex> lock(mutex);
+    main_loop.wait_for(lock, std::chrono::milliseconds(turn_duration));
 }
