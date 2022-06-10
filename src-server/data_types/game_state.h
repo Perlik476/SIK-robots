@@ -27,8 +27,11 @@ class ClientState {
     int turns_sent = 0;
     bool game_ended_sent = false;
 
+    socket_t socket;
+    std::atomic_bool ended = false;
+
 public:
-    ClientState() = default;
+    ClientState(socket_t socket) : socket(socket) {}
 
     int get_accepted_players_sent() { return accepted_players_sent; }
     int get_turns_sent() { return turns_sent; }
@@ -48,6 +51,18 @@ public:
         game_started_sent = false;
         game_ended_sent = false;
     }
+
+    void end_threads() {
+        if (!ended) {
+            ended = true;
+
+            boost::system::error_code err;
+            socket->close(err);
+        }
+    }
+
+    bool get_ended() { return ended; }
+    socket_t &get_socket() { return socket; }
 };
 
 class GameState {
@@ -56,12 +71,12 @@ class GameState {
     uint8_t next_player_id = 0;
     uint64_t game_number = 0;
 
-    std::atomic_bool is_sending = false;
+//    std::atomic_bool is_sending = false;
     std::mutex mutex;
     std::condition_variable main_loop;
-    std::condition_variable sending_condition;
-    std::condition_variable sending_ended;
-    std::atomic_int how_many_to_send = 0;
+//    std::condition_variable sending_condition;
+//    std::condition_variable sending_ended;
+//    std::atomic_int how_many_to_send = 0;
 
     uint16_t initial_blocks;
     uint32_t seed;
@@ -91,6 +106,8 @@ class GameState {
     std::map<player_id_t, std::shared_ptr<Action>> players_action;
     std::vector<std::shared_ptr<ServerMessage>> accepted_players_to_send;
     std::vector<std::shared_ptr<ServerMessage>> turn_messages;
+
+    std::set<std::shared_ptr<ClientState>> clients;
 
     Position get_random_position() {
         auto pos_x = static_cast<uint16_t>(random() % size_x.get_value());
@@ -154,6 +171,14 @@ public:
                 return;
             }
         }
+    }
+
+    void add_client(std::shared_ptr<ClientState> client) {
+        clients.insert(client);
+    }
+
+    void remove_client(std::shared_ptr<ClientState> client) {
+        clients.erase(client);
     }
 
     void next_loop();

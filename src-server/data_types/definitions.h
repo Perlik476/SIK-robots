@@ -36,14 +36,14 @@ public:
     virtual ~Serializable() = default;
 };
 
-class ClientInfo;
+class ClientState;
 
 class Executable {
 public:
     virtual ~Executable() = default;
 
     virtual void execute(std::shared_ptr<GameState> &game_state,
-                         std::shared_ptr<ClientInfo> &client_info) = 0;
+                         std::shared_ptr<ClientState> &client) = 0;
 };
 
 template<class T>

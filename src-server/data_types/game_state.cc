@@ -3,9 +3,6 @@
 
 void GameState::try_add_player(const String &player_name, const String &address) {
     std::unique_lock<std::mutex> lock(mutex);
-    while (is_sending) { // TODO
-        sending_condition.wait(lock);
-    }
 
     if (players.get_map().size() == players_count.get_value()) {
         return;
@@ -26,8 +23,6 @@ void GameState::try_add_player(const String &player_name, const String &address)
     if (players.get_map().size() == players_count.get_value()) {
         is_started = true;
     }
-
-    main_loop.notify_all();
 }
 
 void GameState::start_game() {
@@ -170,8 +165,13 @@ void GameState::next_turn() {
 
         turn_messages.push_back(std::make_shared<TurnMessage>(turn, events));
 
+        if (turn.get_value() % 1000 == 0) {
+            std::cerr << turn.get_value() << std::endl;
+        }
+
         if (turn == game_length.get_value()) {
             is_ended = true;
+            std::cerr << "end" << std::endl;
             return;
         }
 
@@ -183,48 +183,43 @@ void GameState::next_turn() {
 
 void GameState::send_next() {
 //    std::cout << "send_next" << std::endl;
-    sending_condition.notify_all();
 
-    {
-        std::unique_lock<std::mutex> lock(mutex);
-        while (how_many_to_send != 0) {
-            sending_ended.wait(lock);
+    std::set<std::shared_ptr<ClientState>> to_remove;
+    for (auto &client : clients) {
+        if (client->get_ended()) {
+            return;
         }
 
-        is_sending = false;
-        if (is_ended) {
-            game_number++;
-            reset();
+        try {
+            auto messages = get_messages_to_send(*client);
+            for (auto &message: messages) {
+    //                std::cout << "sending..." << std::endl;
+
+                    message->send(client->get_socket());
+                    std::cout << "sent" << std::endl;
+    //                std::cout << "sent." << std::endl;
+            }
         }
-        sending_ended.notify_all();
+        catch (std::exception &exception) {
+            std::cerr << exception.what() << std::endl;
+            client->end_threads();
+            to_remove.insert(client);
+        }
+    }
+
+    for (auto &client : to_remove) {
+        clients.erase(client);
+    }
+
+    if (is_ended) {
+        game_number++;
+        reset();
     }
 
 //    std::cout << "send_next end" << std::endl;
 }
 
 std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages_to_send(ClientState &client_state) {
-    if (is_sending) {
-        {
-            std::unique_lock<std::mutex> lock(mutex);
-            while (is_sending) {
-                sending_ended.wait(lock);
-            }
-        }
-    }
-    sending_ended.notify_all();
-
-    how_many_to_send++;
-//    std::cout << "get_messages_to_send" << std::endl;
-    {
-        std::unique_lock<std::mutex> lock(mutex);
-        while (!is_sending) {
-//            std::cout << "sending_condition.wait" << std::endl;
-            sending_condition.wait(lock);
-        }
-    }
-    sending_condition.notify_all();
-
-//    std::cout << "messages" << std::endl;
     std::vector<std::shared_ptr<ServerMessage>> messages;
 
     if (client_state.get_game_number() != game_number) {
@@ -263,11 +258,6 @@ std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages_to_send(Clie
         client_state.set_game_ended_sent();
     }
 
-    how_many_to_send--;
-    if (how_many_to_send == 0) {
-        sending_ended.notify_all();
-    }
-
 //    std::cout << "get_messages_to_send end" << std::endl;
 
     return messages;
@@ -277,7 +267,6 @@ void GameState::next_loop() {
     std::unique_lock<std::mutex> lock(mutex);
     main_loop.wait_for(lock, std::chrono::milliseconds(turn_duration));
     next_turn();
-    is_sending = true;
     lock.unlock();
     send_next();
 }
