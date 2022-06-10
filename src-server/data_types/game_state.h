@@ -21,7 +21,6 @@ class ServerMessage;
 class ClientMessage;
 
 class ClientState {
-    uint64_t game_number = 0;
     int accepted_players_sent = 0;
     bool game_started_sent = false;
     int turns_sent = 0;
@@ -37,13 +36,11 @@ public:
     int get_turns_sent() { return turns_sent; }
     bool get_game_started_sent() { return game_started_sent; }
     bool get_game_ended_sent() { return game_ended_sent; }
-    uint64_t get_game_number() { return game_number; }
 
     void increase_accepted_players_sent(int inc) { accepted_players_sent += inc; }
     void increase_turns_sent(int inc) { turns_sent += inc; }
     void set_game_started_sent() { game_started_sent = true; }
     void set_game_ended_sent() { game_ended_sent = true; }
-    void set_game_number(uint64_t new_game_number) { this->game_number = new_game_number; }
 
     void reset() {
         accepted_players_sent = 0;
@@ -68,6 +65,7 @@ public:
 class GameState {
     bool is_started = false;
     bool is_ended = false;
+    bool is_first_turn = false;
     uint8_t next_player_id = 0;
     uint64_t game_number = 0;
 
@@ -138,13 +136,18 @@ class GameState {
         accepted_players_to_send.clear();
         turn_messages.clear();
 
+        for (auto &client : clients) {
+            client->reset();
+        }
+
         is_started = false;
+        is_first_turn = false;
         is_ended = false;
     }
 
     void next_turn();
 
-    void send_next();
+    void send_to_all();
 
 public:
     friend MoveAction;
