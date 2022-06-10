@@ -171,7 +171,6 @@ void GameState::next_turn() {
 
         if (turn == game_length.get_value()) {
             is_ended = true;
-            std::cerr << "end" << std::endl;
             return;
         }
 
@@ -186,10 +185,18 @@ void GameState::send_next() {
 
     std::set<std::shared_ptr<ClientState>> to_remove;
     for (auto &client : clients) {
+        if (client->get_ended()) {
+            to_remove.insert(client);
+            continue;
+        }
+
         try {
             auto messages = get_messages_to_send(*client);
             for (auto &message: messages) {
+    //                std::cout << "sending..." << std::endl;
+
                     message->send(client->get_socket());
+    //                std::cout << "sent." << std::endl;
             }
         }
         catch (std::exception &exception) {
