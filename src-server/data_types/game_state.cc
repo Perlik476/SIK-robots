@@ -98,7 +98,6 @@ void GameState::add_explosion(const Position &bomb_position, List<player_id_t> &
 }
 
 void GameState::next_turn() {
-//    std::cout << "next turn" << std::endl;
     player_deaths_this_round.clear();
     blocks_destroyed_this_round.clear();
 
@@ -108,15 +107,14 @@ void GameState::next_turn() {
             turn += 1;
             is_first_turn = true;
             return;
-        }
-        else if (turn == 1) {
+        } else if (turn == 1) {
             is_first_turn = false;
         }
         PointerList<Event> events;
 
         std::set<bomb_id_t> bombs_to_remove;
 
-        for (auto &[id, bomb] : bombs_map) {
+        for (auto &[id, bomb]: bombs_map) {
             bomb->decrease_timer();
             if (bomb->does_explode()) {
                 auto position = bomb->get_position();
@@ -125,7 +123,8 @@ void GameState::next_turn() {
 
                 add_explosion(position, robots_destroyed, blocks_destroyed);
 
-                events.get_list().push_back(std::make_shared<BombExplodedEvent>(id, robots_destroyed, blocks_destroyed));
+                events.get_list().push_back(
+                        std::make_shared<BombExplodedEvent>(id, robots_destroyed, blocks_destroyed));
 
                 bombs_to_remove.insert(id);
                 auto bombs_it = bombs.get_list().begin();
@@ -136,24 +135,22 @@ void GameState::next_turn() {
             }
         }
 
-        for (auto &id : bombs_to_remove) {
+        for (auto &id: bombs_to_remove) {
             bombs_map.erase(id);
         }
 
-        for (auto &position : blocks_destroyed_this_round) {
+        for (auto &position: blocks_destroyed_this_round) {
             blocks.get_set().erase(position);
         }
 
         for (uint8_t id = 0; id < players_count.get_value(); id++) {
-//            std::cout << "PLAYER ID = " << (int) id << std::endl;
             if (player_deaths_this_round.contains(id)) {
                 auto position = get_random_position();
                 player_positions.get_map()[id] = position;
                 auto id_temp = player_id_t(id);
                 events.get_list().push_back(std::make_shared<PlayerMovedEvent>(id_temp, position));
                 scores.get_map()[id] += 1;
-            }
-            else {
+            } else {
                 if (players_action.contains(id)) {
                     auto action = players_action[id];
                     if (action) {
@@ -169,10 +166,6 @@ void GameState::next_turn() {
 
         turn_messages.push_back(std::make_shared<TurnMessage>(turn, events));
 
-        if (turn.get_value() % 1000 == 0) {
-            std::cerr << turn.get_value() << std::endl;
-        }
-
         if (turn == game_length.get_value()) {
             is_ended = true;
             return;
@@ -180,13 +173,9 @@ void GameState::next_turn() {
 
         turn += 1;
     }
-
-//    std::cout << "next turn end" << std::endl;
 }
 
 void GameState::send_to_all() {
-//    std::cout << "send_to_all" << std::endl;
-
     std::set<std::shared_ptr<ClientState>> to_remove;
     for (auto &client : clients) {
         if (client->get_ended()) {
@@ -197,14 +186,12 @@ void GameState::send_to_all() {
         try {
             auto messages = get_messages_to_send(*client);
             for (auto &message: messages) {
-    //                std::cout << "sending..." << std::endl;
-
                     message->send(client->get_socket());
-    //                std::cout << "sent." << std::endl;
             }
         }
         catch (std::exception &exception) {
-            std::cerr << exception.what() << std::endl;
+            if (!client->get_ended())
+                std::cerr << "Connection error: " << exception.what() << std::endl;
             client->end_threads();
             to_remove.insert(client);
         }
@@ -218,8 +205,6 @@ void GameState::send_to_all() {
         game_number++;
         reset();
     }
-
-//    std::cout << "send_to_all end" << std::endl;
 }
 
 std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages_to_send(ClientState &client_state) {

@@ -26,10 +26,10 @@ int main(int argc, char *argv[]) {
     try {
         tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v6(), arguments->get_port()));
 
-        std::thread main_thread{main_loop, std::ref(game_state)};
+        std::thread game_loop_thread{game_loop, std::ref(game_state)};
         std::thread acceptor_thread{acceptor_fun, std::ref(game_state), std::ref(io_context), std::ref(acceptor)};
 
-        main_thread.detach();
+        game_loop_thread.detach();
 
         acceptor_thread.join();
     }

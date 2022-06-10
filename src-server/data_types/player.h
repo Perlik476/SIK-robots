@@ -31,7 +31,7 @@ public:
     }
 
     int operator== (Player &other) {
-        return address.get_string() == other.address.get_string(); // TODO
+        return address.get_string() == other.address.get_string();
     }
 };
 

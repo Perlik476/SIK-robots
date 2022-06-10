@@ -12,14 +12,11 @@ enum ClientMessageType: char {
     Move,
 };
 
-using thread_t = std::shared_ptr<std::thread>;
-
 class ClientMessage : public Executable {};
 
 class JoinMessage : public ClientMessage {
 private:
     String name;
-
 
 public:
     JoinMessage(Bytes &bytes) : name(bytes) {}

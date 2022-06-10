@@ -40,7 +40,6 @@ public:
         bomb_timer(game_state->get_bomb_timer()) {}
 
     Bytes serialize() const override {
-//        std::cout << "Hello" << std::endl;
         return Bytes(get_identifier()) + server_name.serialize() + players_count.serialize() + size_x.serialize()
             + size_y.serialize() + game_length.serialize() + explosion_radius.serialize() + bomb_timer.serialize();
     }
@@ -58,7 +57,6 @@ public:
     AcceptedPlayerMessage(player_id_t &id, Player &player) : id(id), player(player) {}
 
     Bytes serialize() const override {
-//        std::cout << "AcceptedPlayer:" << player.get_name().get_string() << " " << player.get_address().get_string() << std::endl;
         return Bytes(get_identifier()) + id.serialize() + player.serialize();
     }
 };
@@ -74,7 +72,6 @@ public:
     GameStartedMessage(players_t &players) : players(players) {}
 
     Bytes serialize() const override {
-//        std::cout << "GameStarted" << std::endl;
         return Bytes(get_identifier()) + players.serialize();
     }
 };
@@ -91,9 +88,7 @@ public:
     TurnMessage(turn_t &turn, PointerList<Event> &events) : turn(turn), events(events) {}
 
     Bytes serialize() const override {
-//        std::cout << "TurnMessage: " << turn.get_value() << ", events size = " << events.get_list().size() << std::endl;
         auto bytes = Bytes(get_identifier()) + turn.serialize() + events.serialize();
-//        std::cout << "TurnMessage serialized" << std::endl;
         return bytes;
     }
 };
@@ -108,7 +103,6 @@ public:
     GameEndedMessage(players_scores_t &scores) : scores(scores) {}
 
     Bytes serialize() const override {
-//        std::cout << "GameEnded" << std::endl;
         return Bytes(get_identifier()) + scores.serialize();
     }
 };

@@ -69,12 +69,8 @@ class GameState {
     uint8_t next_player_id = 0;
     uint64_t game_number = 0;
 
-//    std::atomic_bool is_sending = false;
     std::mutex mutex;
     std::condition_variable main_loop;
-//    std::condition_variable sending_condition;
-//    std::condition_variable sending_ended;
-//    std::atomic_int how_many_to_send = 0;
 
     uint16_t initial_blocks;
     uint32_t seed;
@@ -119,7 +115,6 @@ class GameState {
                        List<Position> &blocks_destroyed);
 
     void reset() {
-        // TODO
         turn = 0;
         next_player_id = 0;
         players.get_map().clear();
@@ -201,9 +196,6 @@ public:
     auto &get_blocks() const { return blocks; }
     auto &get_bombs() const { return bombs; }
     auto &get_scores() const { return scores; }
-    auto &get_turn_duration() const { return turn_duration; }
-
-    bool get_is_started() const { return is_started; }
 };
 
 #endif //ROBOTS_GAME_STATE_H

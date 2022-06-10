@@ -59,7 +59,6 @@ public:
 
         Bytes list_content;
         for (auto &element: list) {
-//            std::cout << "pointer: " << element.get() << std::endl;
             list_content += element->serialize();
         }
 

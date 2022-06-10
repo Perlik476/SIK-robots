@@ -13,7 +13,6 @@
 #include "data_types/position.h"
 #include "data_types/set.h"
 #include "data_types/string.h"
-#include "data_types/threads_info.h"
 #include "data_types/uint.h"
 #include "data_types/usings.h"
 

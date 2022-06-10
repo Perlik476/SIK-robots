@@ -5,7 +5,7 @@ void acceptor_fun(std::shared_ptr<GameState> &game_state, boost::asio::io_contex
                   tcp::acceptor &acceptor) {
     try {
         std::atomic_int current_connections = 0;
-        const int max_connections = 25;
+        const int max_connections = 2;
         for (;;) {
             if (current_connections < max_connections) {
                 auto socket = std::make_shared<tcp::socket>(io_context);
@@ -15,59 +15,32 @@ void acceptor_fun(std::shared_ptr<GameState> &game_state, boost::asio::io_contex
 
                 current_connections++;
 
-//                std::cout << "Accepted" << std::endl;
-
                 auto client = std::make_shared<ClientState>(socket);
                 game_state->add_client(client);
                 try {
                     HelloMessage(game_state).send(client->get_socket());
                 }
-                catch (...) {
-                    std::cerr << "Hello error" << std::endl; // TODO
+                catch (std::exception &exception) {
+                    std::cerr << "Connection error: " << exception.what() << std::endl;
+                    continue;
                 }
-//                game_state
 
                 auto receiver_thread = std::make_shared<std::thread>(receiver_fun, client, std::ref(game_state),
                                                                      std::ref(current_connections));
                 receiver_thread->detach();
-
-//                std::cout << "connections: " << (int) current_connections<< std::endl;
             }
         }
     }
     catch (std::exception &exception) {
-        std::cerr << exception.what() << std::endl;
+        std::cerr << "Acceptor failed: " << exception.what() << std::endl;
     }
 }
 
-void main_loop(std::shared_ptr<GameState> &game_state) {
+void game_loop(std::shared_ptr<GameState> &game_state) {
     for (;;) {
         game_state->next_loop();
     }
 }
-//
-//void sender_fun(std::shared_ptr<ClientState> client_info, std::shared_ptr<GameState> &game_state) {
-//    ClientState client_state;
-//
-//    try {
-//        for (;;) {
-//            if (client_info->get_ended()) {
-//                return;
-//            }
-//
-//            auto messages = game_state->get_messages_to_send(client_state);
-//            for (auto &message: messages) {
-////                std::cout << "sending..." << std::endl;
-//                message->send(client_info->get_socket());
-////                std::cout << "sent." << std::endl;
-//            }
-//        }
-//    }
-//    catch (std::exception &exception) {
-//        std::cerr << exception.what() << std::endl;
-//        client_info->end_threads();
-//    }
-//}
 
 void receiver_fun(std::shared_ptr<ClientState> client, std::shared_ptr<GameState> &game_state,
                   std::atomic_int &current_connections) {
@@ -85,7 +58,8 @@ void receiver_fun(std::shared_ptr<ClientState> client, std::shared_ptr<GameState
         }
     }
     catch (std::exception &exception) {
-        std::cerr << exception.what() << std::endl;
+        if (!client->get_ended())
+            std::cerr << "Connection error: " << exception.what() << std::endl;
         client->end_threads();
         current_connections--;
     }

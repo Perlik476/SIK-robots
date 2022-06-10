@@ -26,6 +26,7 @@ void Arguments::parse_arguments(int argc, char *argv[]) {
 
     if (vm.count("help")) {
         std::cout << desc << "\n";
+        exit(0);
     }
 
     po::notify(vm);
