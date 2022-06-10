@@ -85,13 +85,11 @@ void GameState::add_explosion(const Position &bomb_position, List<player_id_t> &
                 }
             }
 
-            for (auto &block_position : blocks.get_set()) {
-                if (current_position == block_position) {
-                    do_continue = false;
-                    blocks_destroyed.get_list().push_back(current_position);
-                    blocks_destroyed_this_round.insert(block_position);
-                    break;
-                }
+            if (blocks.get_set().contains(current_position)) {
+                do_continue = false;
+                blocks_destroyed.get_list().push_back(current_position);
+                blocks_destroyed_this_round.insert(current_position);
+                break;
             }
         }
     }
@@ -107,7 +105,8 @@ void GameState::next_turn() {
             turn += 1;
             is_first_turn = true;
             return;
-        } else if (turn == 1) {
+        }
+        else if (turn == 1) {
             is_first_turn = false;
         }
         PointerList<Event> events;

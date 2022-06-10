@@ -7,28 +7,31 @@ void acceptor_fun(std::shared_ptr<GameState> &game_state, boost::asio::io_contex
         std::atomic_int current_connections = 0;
         const int max_connections = 25;
         for (;;) {
-            if (current_connections < max_connections) {
-                auto socket = std::make_shared<tcp::socket>(io_context);
-                acceptor.accept(*socket);
-                tcp::no_delay option(true);
-                socket->set_option(option);
+            auto socket = std::make_shared<tcp::socket>(io_context);
+            acceptor.accept(*socket);
+            tcp::no_delay option(true);
+            socket->set_option(option);
 
-                current_connections++;
-
-                auto client = std::make_shared<ClientState>(socket);
-                game_state->add_client(client);
-                try {
-                    HelloMessage(game_state).send(client->get_socket());
-                }
-                catch (std::exception &exception) {
-                    std::cerr << "Connection error: " << exception.what() << std::endl;
-                    continue;
-                }
-
-                auto receiver_thread = std::make_shared<std::thread>(receiver_fun, client, std::ref(game_state),
-                                                                     std::ref(current_connections));
-                receiver_thread->detach();
+            if (current_connections == max_connections) {
+                socket->close();
+                continue;
             }
+
+            current_connections++;
+
+            auto client = std::make_shared<ClientState>(socket);
+            game_state->add_client(client);
+            try {
+                HelloMessage(game_state).send(client->get_socket());
+            }
+            catch (std::exception &exception) {
+                std::cerr << "Connection error: " << exception.what() << std::endl;
+                continue;
+            }
+
+            auto receiver_thread = std::make_shared<std::thread>(receiver_fun, client, std::ref(game_state),
+                                                                 std::ref(current_connections));
+            receiver_thread->detach();
         }
     }
     catch (std::exception &exception) {
