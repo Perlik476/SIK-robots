@@ -15,7 +15,7 @@ void acceptor_fun(std::shared_ptr<GameState> &game_state, boost::asio::io_contex
 
                 current_connections++;
 
-                std::cout << "Accepted" << std::endl;
+//                std::cout << "Accepted" << std::endl;
 
                 auto client_info = std::make_shared<ClientInfo>(socket);
 
@@ -29,7 +29,7 @@ void acceptor_fun(std::shared_ptr<GameState> &game_state, boost::asio::io_contex
                 client_info->set_sender();
                 client_info->set_receiver();
 
-                std::cout << "connections: " << (int) current_connections<< std::endl;
+//                std::cout << "connections: " << (int) current_connections<< std::endl;
             }
         }
     }
@@ -40,11 +40,7 @@ void acceptor_fun(std::shared_ptr<GameState> &game_state, boost::asio::io_contex
 
 void main_loop(std::shared_ptr<GameState> &game_state, boost::asio::io_context &io_context) {
     for (;;) {
-//        boost::asio::steady_timer timer(io_context, boost::asio::chrono::milliseconds(game_state->get_turn_duration()));
-//        timer.wait();
-        game_state->wait();
-        game_state->next_turn();
-        game_state->send_next();
+        game_state->next_loop();
     }
 }
 
@@ -68,7 +64,9 @@ void sender_fun(std::shared_ptr<ClientInfo> client_info, std::shared_ptr<GameSta
 
             auto messages = game_state->get_messages_to_send(client_state);
             for (auto &message: messages) {
+//                std::cout << "sending..." << std::endl;
                 message->send(client_info->get_socket());
+//                std::cout << "sent." << std::endl;
             }
         }
     }

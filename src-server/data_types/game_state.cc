@@ -103,9 +103,7 @@ void GameState::add_explosion(const Position &bomb_position, List<player_id_t> &
 }
 
 void GameState::next_turn() {
-    std::unique_lock<std::mutex> lock(mutex);
-
-    std::cout << "next turn" << std::endl;
+//    std::cout << "next turn" << std::endl;
     player_deaths_this_round.clear();
     blocks_destroyed_this_round.clear();
 
@@ -148,7 +146,7 @@ void GameState::next_turn() {
         }
 
         for (uint8_t id = 0; id < players_count.get_value(); id++) {
-            std::cout << "PLAYER ID = " << (int) id << std::endl;
+//            std::cout << "PLAYER ID = " << (int) id << std::endl;
             if (player_deaths_this_round.contains(id)) {
                 auto position = get_random_position();
                 player_positions.get_map()[id] = position;
@@ -180,17 +178,11 @@ void GameState::next_turn() {
         turn += 1;
     }
 
-    std::cout << "next turn end" << std::endl;
+//    std::cout << "next turn end" << std::endl;
 }
 
 void GameState::send_next() {
 //    std::cout << "send_next" << std::endl;
-
-    is_sending = true;
-
-    {
-        std::unique_lock<std::mutex> lock(mutex);
-    }
     sending_condition.notify_all();
 
     {
@@ -232,41 +224,41 @@ std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages_to_send(Clie
     }
     sending_condition.notify_all();
 
-    std::cout << "messages" << std::endl;
+//    std::cout << "messages" << std::endl;
     std::vector<std::shared_ptr<ServerMessage>> messages;
 
     if (client_state.get_game_number() != game_number) {
-        std::cout << "reset" << std::endl;
+//        std::cout << "reset" << std::endl;
         client_state.reset();
         client_state.set_game_number(game_number);
     }
 
     auto accepted_players_iterator = accepted_players_to_send.begin() + client_state.get_accepted_players_sent();
-    std::cout << "accepted players sent: " << client_state.get_accepted_players_sent() << std::endl;
+//    std::cout << "accepted players sent: " << client_state.get_accepted_players_sent() << std::endl;
     while (accepted_players_iterator != accepted_players_to_send.end()) {
-        std::cout << "accepted player to send" << std::endl;
+//        std::cout << "accepted player to send" << std::endl;
         messages.push_back(*accepted_players_iterator);
         accepted_players_iterator++;
         client_state.increase_accepted_players_sent(1);
     }
 
-    std::cout << "is_started: " << is_started << std::endl;
+//    std::cout << "is_started: " << is_started << std::endl;
     if (is_started && !client_state.get_game_started_sent()) {
         messages.push_back(std::make_shared<GameStartedMessage>(players));
         client_state.set_game_started_sent();
     }
 
     auto turn_messages_iterator = turn_messages.begin() + client_state.get_turns_sent();
-    std::cout << "turns sent: " << client_state.get_turns_sent() << std::endl;
+//    std::cout << "turns sent: " << client_state.get_turns_sent() << std::endl;
     while (turn_messages_iterator != turn_messages.end()) {
-        std::cout << "turn message to send" << std::endl;
+//        std::cout << "turn message to send" << std::endl;
         messages.push_back(*turn_messages_iterator);
         turn_messages_iterator++;
         client_state.increase_turns_sent(1);
     }
 
     if (is_ended && !client_state.get_game_ended_sent()) {
-        std::cout << "game ended" << std::endl;
+//        std::cout << "game ended" << std::endl;
         messages.push_back(std::make_shared<GameEndedMessage>(scores));
         client_state.set_game_ended_sent();
     }
@@ -276,12 +268,16 @@ std::vector<std::shared_ptr<ServerMessage>> GameState::get_messages_to_send(Clie
         sending_ended.notify_all();
     }
 
-    std::cout << "get_messages_to_send end" << std::endl;
+//    std::cout << "get_messages_to_send end" << std::endl;
 
     return messages;
 }
 
-void GameState::wait() {
+void GameState::next_loop() {
     std::unique_lock<std::mutex> lock(mutex);
     main_loop.wait_for(lock, std::chrono::milliseconds(turn_duration));
+    next_turn();
+    is_sending = true;
+    lock.unlock();
+    send_next();
 }

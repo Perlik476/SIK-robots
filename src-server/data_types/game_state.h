@@ -125,6 +125,10 @@ class GameState {
         is_ended = false;
     }
 
+    void next_turn();
+
+    void send_next();
+
 public:
     friend MoveAction;
     friend PlaceBombAction;
@@ -152,11 +156,7 @@ public:
         }
     }
 
-    void next_turn();
-
-    void send_next();
-
-    void wait();
+    void next_loop();
 
     std::vector<std::shared_ptr<ServerMessage>> get_messages_to_send(ClientState &client_state);
 

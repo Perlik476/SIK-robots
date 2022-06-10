@@ -3,25 +3,25 @@
 #include "../includes.h"
 
 void JoinMessage::execute(std::shared_ptr<GameState> &game_state, std::shared_ptr<ClientInfo> &client_info) {
-    std::cout << "Join: " << name.get_string() << std::endl;
+//    std::cout << "Join: " << name.get_string() << std::endl;
 
     game_state->try_add_player(name, socket_to_string(client_info->get_socket()));
 }
 
 void MoveMessage::execute(std::shared_ptr<GameState> &game_state, std::shared_ptr<ClientInfo> &client_info) {
-    std::cout << "Move: " << direction << std::endl;
+//    std::cout << "Move: " << direction << std::endl;
     std::shared_ptr<Action> action = std::make_shared<MoveAction>(direction);
     game_state->set_action(action, client_info->get_socket());
 }
 
 void PlaceBombMessage::execute(std::shared_ptr<GameState> &game_state, std::shared_ptr<ClientInfo> &client_info) {
-    std::cout << "PlaceBomb" << std::endl;
+//    std::cout << "PlaceBomb" << std::endl;
     std::shared_ptr<Action> action = std::make_shared<PlaceBombAction>();
     game_state->set_action(action, client_info->get_socket());
 }
 
 void PlaceBlockMessage::execute(std::shared_ptr<GameState> &game_state, std::shared_ptr<ClientInfo> &client_info) {
-    std::cout << "PlaceBlock" << std::endl;
+//    std::cout << "PlaceBlock" << std::endl;
     std::shared_ptr<Action> action = std::make_shared<PlaceBlockAction>();
     game_state->set_action(action, client_info->get_socket());
 }
