@@ -93,8 +93,9 @@ class GameState {
     std::vector<std::shared_ptr<ServerMessage>> turn_messages;
 
     Position get_random_position() {
-        return Position(static_cast<uint16_t>(random() % size_x.get_value()),
-                        static_cast<uint16_t>(random() % size_y.get_value()));
+        auto pos_x = static_cast<uint16_t>(random() % size_x.get_value());
+        auto pos_y = static_cast<uint16_t>(random() % size_y.get_value());
+        return Position(pos_x, pos_y);
     }
 
     void start_game();
