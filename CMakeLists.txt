@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.16)
 project(robots)
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -20,7 +20,7 @@ else ()
 endif()
 
 set (CMAKE_CXX_STANDARD 20)
-set (CMAKE_CXX_FLAGS "-Wall -Wextra -Wconversion -pthread -std=gnu++20")
+set (CMAKE_CXX_FLAGS "-Wall -Wextra -Wconversion -Werror -pthread -std=gnu++20")
 set (CMAKE_CXX_FLAGS_DEBUG "-g")
 set (CMAKE_CXX_FLAGS_RELEASE "-O2")
 

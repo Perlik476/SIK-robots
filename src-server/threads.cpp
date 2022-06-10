@@ -38,7 +38,7 @@ void acceptor_fun(std::shared_ptr<GameState> &game_state, boost::asio::io_contex
     }
 }
 
-void main_loop(std::shared_ptr<GameState> &game_state, boost::asio::io_context &io_context) {
+void main_loop(std::shared_ptr<GameState> &game_state) {
     for (;;) {
         game_state->next_loop();
     }
