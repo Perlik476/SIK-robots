@@ -5,7 +5,7 @@ void acceptor_fun(std::shared_ptr<GameState> &game_state, boost::asio::io_contex
                   tcp::acceptor &acceptor) {
     try {
         std::atomic_int current_connections = 0;
-        const int max_connections = 2;
+        const int max_connections = 25;
         for (;;) {
             if (current_connections < max_connections) {
                 auto socket = std::make_shared<tcp::socket>(io_context);
